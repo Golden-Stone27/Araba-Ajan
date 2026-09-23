@@ -17,6 +17,7 @@ namespace Racing.Editor
     {
         const string Root = "Assets/Racing";
         public const string BridgeScenePath = Root + "/Scenes/Race_Bridge.unity";
+        public const string WatchScenePath = Root + "/Scenes/Race_Watch.unity";
         public const string BridgeBuildPath = "Builds/RaceEnv/RaceEnv.exe";
 
         [MenuItem("Racing/Setup Bridge Scene (M3)")]
@@ -55,6 +56,33 @@ namespace Racing.Editor
             scenes.Add(new EditorBuildSettingsScene(BridgeScenePath, true));
             EditorBuildSettings.scenes = scenes.ToArray();
             Debug.Log("[Race] M3 bridge scene saved: " + BridgeScenePath);
+        }
+
+        /// <summary>
+        /// Race_Bridge copy with a single agent for watching a policy live (python -m racing_rl.train.watch).
+        /// Built additively so the open scene is untouched; not added to the build settings.
+        /// </summary>
+        [MenuItem("Racing/Setup Watch Scene (1 agent)")]
+        public static void SetupWatchScene()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(BridgeScenePath) == null) SetupBridgeScene();
+            AssetDatabase.DeleteAsset(WatchScenePath);
+            if (!AssetDatabase.CopyAsset(BridgeScenePath, WatchScenePath))
+            {
+                Debug.LogError("[Race] cannot copy " + BridgeScenePath + " to " + WatchScenePath);
+                return;
+            }
+            Scene scene = EditorSceneManager.OpenScene(WatchScenePath, OpenSceneMode.Additive);
+            foreach (GameObject root in scene.GetRootGameObjects())
+            foreach (BridgeDriver driver in root.GetComponentsInChildren<BridgeDriver>(true))
+            {
+                var dso = new SerializedObject(driver);
+                dso.FindProperty("numAgents").intValue = 1;
+                dso.ApplyModifiedPropertiesWithoutUndo();
+            }
+            EditorSceneManager.SaveScene(scene);
+            EditorSceneManager.CloseScene(scene, true);
+            Debug.Log("[Race] watch scene saved: " + WatchScenePath);
         }
 
         [MenuItem("Racing/Build Bridge Player (M3)")]
