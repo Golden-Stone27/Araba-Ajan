@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &307510709
+--- !u!1 &862512694
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,10 +127,10 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 307510713}
-  - component: {fileID: 307510712}
-  - component: {fileID: 307510711}
-  - component: {fileID: 307510710}
+  - component: {fileID: 862512698}
+  - component: {fileID: 862512697}
+  - component: {fileID: 862512696}
+  - component: {fileID: 862512695}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -138,36 +138,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &307510710
+--- !u!114 &862512695
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 307510709}
+  m_GameObject: {fileID: 862512694}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bf64f64fb5a755547b77dd760f3375c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Racing.Viewer::Racing.Viewer.ViewerChaseCamera
-  viewer: {fileID: 893254497}
+  viewer: {fileID: 950379035}
   offset: {x: 0, y: 4, z: -9}
   followSharpness: 6
---- !u!81 &307510711
+--- !u!81 &862512696
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 307510709}
+  m_GameObject: {fileID: 862512694}
   m_Enabled: 1
---- !u!20 &307510712
+--- !u!20 &862512697
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 307510709}
+  m_GameObject: {fileID: 862512694}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
@@ -212,13 +212,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &307510713
+--- !u!4 &862512698
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 307510709}
+  m_GameObject: {fileID: 862512694}
   serializedVersion: 2
   m_LocalRotation: {x: 0.25881907, y: 0, z: 0, w: 0.9659259}
   m_LocalPosition: {x: 0, y: 25, z: -40}
@@ -227,7 +227,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &893254496
+--- !u!1 &950379034
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -235,8 +235,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 893254498}
-  - component: {fileID: 893254497}
+  - component: {fileID: 950379036}
+  - component: {fileID: 950379035}
   m_Layer: 0
   m_Name: Viewer
   m_TagString: Untagged
@@ -244,30 +244,30 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &893254497
+--- !u!114 &950379035
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 893254496}
+  m_GameObject: {fileID: 950379034}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4377444d5570163488375fce1d3f4bef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Racing.Viewer::Racing.Viewer.ViewerController
-  template: {fileID: 1937756422}
+  template: {fileID: 2083483935}
   catalog: {fileID: 11400000, guid: e804a1bf03f7ba6409883c00ea54fdf9, type: 2}
   initialTrack: Track_A
   spawnSeed: 1000
   autopilot: 1
---- !u!4 &893254498
+--- !u!4 &950379036
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 893254496}
+  m_GameObject: {fileID: 950379034}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -276,7 +276,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1619495013
+--- !u!1 &1726817568
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -284,8 +284,94 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1619495015}
-  - component: {fileID: 1619495014}
+  - component: {fileID: 1726817572}
+  - component: {fileID: 1726817571}
+  - component: {fileID: 1726817570}
+  - component: {fileID: 1726817569}
+  m_Layer: 0
+  m_Name: ViewerUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1726817569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1726817568}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94b90d223c7a88949b462a69805234f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Racing.Viewer::Racing.Viewer.ViewerHud
+  viewer: {fileID: 950379035}
+  styleSheet: {fileID: 7433441132597879392, guid: ebec0dce666fe664ca679ae71e9781d2, type: 3}
+--- !u!114 &1726817570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1726817568}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76293a51b578ca74ab27ac7797942b0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Racing.Viewer::Racing.Viewer.ViewerUI
+  viewer: {fileID: 950379035}
+  styleSheet: {fileID: 7433441132597879392, guid: ebec0dce666fe664ca679ae71e9781d2, type: 3}
+  initialSeed: 1
+--- !u!114 &1726817571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1726817568}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: 9824891c4840df14997544b41cab4a82, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 0}
+  m_SortingOrder: 0
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
+--- !u!4 &1726817572
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1726817568}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1935970206
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1935970208}
+  - component: {fileID: 1935970207}
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -293,13 +379,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!108 &1619495014
+--- !u!108 &1935970207
 Light:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1619495013}
+  m_GameObject: {fileID: 1935970206}
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
@@ -358,13 +444,13 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!4 &1619495015
+--- !u!4 &1935970208
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1619495013}
+  m_GameObject: {fileID: 1935970206}
   serializedVersion: 2
   m_LocalRotation: {x: 0.40821794, y: -0.23456973, z: 0.10938166, w: 0.8754261}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -373,7 +459,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1937756421
+--- !u!1 &2083483934
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -381,8 +467,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1937756423}
-  - component: {fileID: 1937756422}
+  - component: {fileID: 2083483936}
+  - component: {fileID: 2083483935}
   m_Layer: 0
   m_Name: RaceEnvironment (Template)
   m_TagString: Untagged
@@ -390,13 +476,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &1937756422
+--- !u!114 &2083483935
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1937756421}
+  m_GameObject: {fileID: 2083483934}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c9de2363b6e61f48a4ed7a3b5f0e2d9, type: 3}
@@ -414,13 +500,13 @@ MonoBehaviour:
   groundMaterial: {fileID: 2100000, guid: 0a033dd46e258c34f9e994f85170c02b, type: 2}
   carMaterial: {fileID: 2100000, guid: fff67953a0bec7b44ac1a3b3b332747a, type: 2}
   initializeOnAwake: 0
---- !u!4 &1937756423
+--- !u!4 &2083483936
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1937756421}
+  m_GameObject: {fileID: 2083483934}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -433,7 +519,8 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1619495015}
-  - {fileID: 1937756423}
-  - {fileID: 893254498}
-  - {fileID: 307510713}
+  - {fileID: 1935970208}
+  - {fileID: 2083483936}
+  - {fileID: 950379036}
+  - {fileID: 862512698}
+  - {fileID: 1726817572}

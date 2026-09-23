@@ -6,12 +6,14 @@ using Racing.Viewer;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 
 namespace Racing.Tests
 {
     /// <summary>
     /// UI1: the viewer scene swaps tracks in place (no scene reload), keeps exactly one environment, spawns the car on the
-    /// start line, frees the replaced track's resources and leaves the frozen Track_A configuration untouched.
+    /// start line, frees the replaced track's resources and leaves the frozen Track_A configuration untouched; the UI Toolkit
+    /// track picker and HUD drive and reflect it.
     /// </summary>
     public class ViewerPlayTests
     {
@@ -152,6 +154,120 @@ namespace Racing.Tests
             AssertOnStartLine("reset");
             Assert.Less(_viewer.ElapsedSeconds, 0.5f, "elapsed time restarts");
         }
+
+        [UnityTest]
+        public IEnumerator Ui_ListsCatalogTracksAndShowsLoadedTrack()
+        {
+            yield return null;
+            VisualElement root = UiRoot();
+            var dropdown = root.Q<DropdownField>(ViewerUI.TrackDropdownName);
+            Assert.IsNotNull(dropdown, "track dropdown");
+            CollectionAssert.AreEqual(new[] { "Track_A", "Track_B", "Track_C", "Track_D", ViewerUI.ProcChoice }, dropdown.choices);
+            Assert.AreEqual("Track_A", dropdown.value);
+            StringAssert.StartsWith("Track_A · Benchmark · L 1144.1 m · W 12.0 m · 114 kapı", root.Q<Label>(ViewerUI.InfoLabelName).text);
+            Assert.AreEqual(DisplayStyle.None, root.Q<Label>(ViewerUI.ErrorLabelName).style.display.value, "no error");
+            Assert.IsNotNull(root.Q<Label>(ViewerHud.SpeedLabelName), "HUD speed");
+            Assert.IsNotNull(root.Q<Label>(ViewerHud.TimeLabelName), "HUD time");
+        }
+
+        [UnityTest]
+        public IEnumerator Ui_Dropdown_LoadsCatalogAndProcTracks()
+        {
+            yield return null;
+            VisualElement root = UiRoot();
+            var dropdown = root.Q<DropdownField>(ViewerUI.TrackDropdownName);
+            var seed = root.Q<TextField>(ViewerUI.SeedFieldName);
+            var info = root.Q<Label>(ViewerUI.InfoLabelName);
+
+            dropdown.value = "Track_C";
+            yield return null;
+            Assert.AreEqual("Track_C", _viewer.TrackName);
+            StringAssert.StartsWith("Track_C · Speedway", info.text);
+            Assert.AreEqual(DisplayStyle.None, seed.parent.style.display.value, "seed row hidden for catalog tracks");
+
+            dropdown.value = ViewerUI.ProcChoice;
+            yield return null;
+            Assert.AreEqual("proc:1", _viewer.TrackName, "proc choice loads the seed field");
+            Assert.AreEqual(DisplayStyle.Flex, seed.parent.style.display.value, "seed row shown");
+
+            UiComponent<ViewerUI>().LoadSeed("42");
+            yield return null;
+            Assert.AreEqual("proc:42", _viewer.TrackName);
+            Assert.AreEqual(-1, _viewer.TrackIndex);
+            StringAssert.StartsWith("proc:42 · Procedural", info.text);
+            Assert.AreEqual(ViewerUI.ProcChoice, dropdown.value);
+            Assert.AreEqual("42", seed.value);
+        }
+
+        [UnityTest]
+        public IEnumerator Ui_InvalidSeed_ShowsErrorAndKeepsTrack()
+        {
+            yield return null;
+            VisualElement root = UiRoot();
+            var error = root.Q<Label>(ViewerUI.ErrorLabelName);
+            ViewerUI ui = UiComponent<ViewerUI>();
+            RaceEnvironment env = _viewer.Environment;
+            foreach (string digits in new[] { "", "12a", "99999999999999999999" })
+            {
+                ui.LoadSeed(digits);
+                yield return null;
+                Assert.AreEqual(DisplayStyle.Flex, error.style.display.value, "error shown for '" + digits + "'");
+                Assert.IsTrue(env == _viewer.Environment, "track kept for '" + digits + "'");
+            }
+            ui.LoadSeed("3");
+            yield return null;
+            Assert.AreEqual(DisplayStyle.None, error.style.display.value, "error cleared by a successful load");
+            Assert.AreEqual("proc:3", _viewer.TrackName);
+        }
+
+        [UnityTest]
+        public IEnumerator Ui_AutopilotToggle_AndHud()
+        {
+            yield return null;
+            VisualElement root = UiRoot();
+            var speed = root.Q<Label>(ViewerHud.SpeedLabelName);
+            var time = root.Q<Label>(ViewerHud.TimeLabelName);
+            var mode = root.Q<Label>(ViewerHud.ModeLabelName);
+            float timeout = Time.time + 10f;
+            while (_viewer.Car.Telemetry.Speed < 5f && Time.time < timeout) yield return null;
+            yield return null;
+            Assert.AreEqual("OTOPİLOT", mode.text);
+            Assert.Greater(int.Parse(speed.text, System.Globalization.CultureInfo.InvariantCulture), 10, "speed km/h");
+            StringAssert.IsMatch(@"^Süre \d{2}:\d{2}\.\d{2}$", time.text);
+            Assert.AreNotEqual("Süre 00:00.00", time.text);
+
+            var toggle = root.Q<Toggle>();
+            toggle.value = false;
+            yield return null;
+            Assert.IsFalse(_viewer.Autopilot, "toggle turns the autopilot off");
+            Assert.AreEqual("KLAVYE", mode.text);
+            _viewer.Autopilot = true; // P key path: the toggle follows the controller
+            yield return null;
+            Assert.IsTrue(toggle.value);
+            Assert.AreEqual("OTOPİLOT", mode.text);
+        }
+
+        [Test]
+        public void Hud_FormatsElapsedTime()
+        {
+            Assert.AreEqual("00:00.00", ViewerHud.FormatCentis(0));
+            Assert.AreEqual("00:00.00", ViewerHud.FormatCentis(-5));
+            Assert.AreEqual("01:23.45", ViewerHud.FormatCentis(8345));
+            Assert.AreEqual("60:00.00", ViewerHud.FormatCentis(360000));
+        }
+
+        T UiComponent<T>() where T : Component
+        {
+            foreach (GameObject root in _scene.GetRootGameObjects())
+            {
+                var c = root.GetComponentInChildren<T>();
+                if (c != null) return c;
+            }
+            Assert.Fail(typeof(T).Name + " in " + ScenePath);
+            return null;
+        }
+
+        VisualElement UiRoot() => UiComponent<UIDocument>().rootVisualElement;
 
         void AssertOnStartLine(string label)
         {
