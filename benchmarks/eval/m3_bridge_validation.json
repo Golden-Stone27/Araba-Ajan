@@ -1,0 +1,208 @@
+{
+  "meta": {
+    "exe": "Builds\\RaceEnv\\RaceEnv.exe",
+    "python": "3.10.11",
+    "numpy": "2.2.6",
+    "date": "2026-09-23 09:45"
+  },
+  "dod2_check_env": {
+    "passed": true,
+    "warnings": []
+  },
+  "dod6_parity": {
+    "s1": {
+      "bridge": {
+        "completion_rate": 1.0,
+        "flying_lap_median_s": 41.279998779296875,
+        "flying_lap_best_s": 41.279998779296875,
+        "lap1_median_s": 44.31999969482422,
+        "mean_speed_mps": 26.624768496174998,
+        "steer_smoothness": 0.018179220353642778,
+        "term_reasons": {
+          "finished": 20
+        },
+        "sector_times_s": [
+          13.16149489486719,
+          14.860135006344557,
+          13.265755625709467
+        ]
+      },
+      "mlagents_inproc": {
+        "completion_rate": 1,
+        "flying_lap_median_s": 41.28,
+        "flying_lap_best_s": 41.28,
+        "lap1_median_s": 44.32,
+        "mean_speed_mps": 26.6170082,
+        "steer_smoothness": 0.0181789342,
+        "term_reasons": {
+          "finished": 20
+        },
+        "sector_times_s": [
+          13.1799994,
+          14.8599987,
+          13.26
+        ]
+      },
+      "delta_completion_pts": 0.0,
+      "delta_flying_median_pct": -0.0,
+      "flying_laps_identical": true,
+      "passed": true
+    },
+    "s2": {
+      "bridge": {
+        "completion_rate": 1.0,
+        "flying_lap_median_s": 41.21999740600586,
+        "flying_lap_best_s": 41.20000076293945,
+        "lap1_median_s": 44.39999771118164,
+        "mean_speed_mps": 26.759843652414972,
+        "steer_smoothness": 0.01970663742436794,
+        "term_reasons": {
+          "finished": 20
+        },
+        "sector_times_s": [
+          12.790909815687087,
+          15.248634571521556,
+          13.180724493113331
+        ]
+      },
+      "mlagents_inproc": {
+        "completion_rate": 1,
+        "flying_lap_median_s": 41.2199974,
+        "flying_lap_best_s": 41.2,
+        "lap1_median_s": 44.3999977,
+        "mean_speed_mps": 26.7531986,
+        "steer_smoothness": 0.01971074,
+        "term_reasons": {
+          "finished": 20
+        },
+        "sector_times_s": [
+          12.7999992,
+          15.24,
+          13.1799984
+        ]
+      },
+      "delta_completion_pts": 0.0,
+      "delta_flying_median_pct": 0.0,
+      "flying_laps_identical": false,
+      "passed": true
+    },
+    "s3": {
+      "bridge": {
+        "completion_rate": 1.0,
+        "flying_lap_median_s": 41.07999801635742,
+        "flying_lap_best_s": 41.05999755859375,
+        "lap1_median_s": 44.26999855041504,
+        "mean_speed_mps": 26.734105629727463,
+        "steer_smoothness": 0.020861911549817386,
+        "term_reasons": {
+          "finished": 20
+        },
+        "sector_times_s": [
+          12.676359603408681,
+          15.20800680567681,
+          13.209533645903953
+        ]
+      },
+      "mlagents_inproc": {
+        "completion_rate": 1,
+        "flying_lap_median_s": 41.079998,
+        "flying_lap_best_s": 41.0599976,
+        "lap1_median_s": 44.2699966,
+        "mean_speed_mps": 26.727375,
+        "steer_smoothness": 0.02086172,
+        "term_reasons": {
+          "finished": 20
+        },
+        "sector_times_s": [
+          12.6799994,
+          15.2,
+          13.1999989
+        ]
+      },
+      "delta_completion_pts": 0.0,
+      "delta_flying_median_pct": 0.0,
+      "flying_laps_identical": true,
+      "passed": true
+    }
+  },
+  "dod4_determinism": {
+    "decisions": 5000,
+    "num_agents": 16,
+    "seed": 123,
+    "action_rng": "np.random.default_rng(7)",
+    "auto_resets": 863,
+    "array_equal": {
+      "obs": true,
+      "reward": true,
+      "terminated": true,
+      "truncated": true
+    },
+    "stream_sha256_run1": {
+      "obs": "7f5141ebef9071ad",
+      "reward": "c5272f41471ab233",
+      "terminated": "da19d1d329ec43f9",
+      "truncated": "f8c784aa6b57396e",
+      "final_obs": "cce2ad6e00e4d4db",
+      "info": "022ef8fb258d9752",
+      "dones": 863
+    },
+    "stream_sha256_run2": {
+      "obs": "7f5141ebef9071ad",
+      "reward": "c5272f41471ab233",
+      "terminated": "da19d1d329ec43f9",
+      "truncated": "f8c784aa6b57396e",
+      "final_obs": "cce2ad6e00e4d4db",
+      "info": "022ef8fb258d9752",
+      "dones": 863
+    },
+    "passed": true,
+    "first_divergent_decision": null
+  },
+  "dod3_lossless": {
+    "steps": 100000,
+    "num_agents": 16,
+    "agent_decisions": 1600000,
+    "error": null,
+    "python_requests_sent": 100001,
+    "python_replies_received": 100001,
+    "unity_messages_received": 100003,
+    "unity_messages_sent": 100003,
+    "unity_steps": 100000,
+    "passed": true
+  },
+  "dod5_reward_consistency": {
+    "episodes": 17507,
+    "max_abs_diff": 2.4901237338781357e-07,
+    "mean_abs_diff": 3.5761494421968683e-08,
+    "passed": true
+  },
+  "dod7_performance": {
+    "wallclock_s": 210.27,
+    "agent_decisions_per_s": 7609.3,
+    "steps_per_s": 475.6,
+    "rtt_us": {
+      "p50": 1988.1,
+      "p99": 2627.103999999998,
+      "mean": 2021.324354
+    },
+    "unity_step_us": {
+      "p50": 1932.300048828125,
+      "p99": 2557.199951171875,
+      "mean": 1964.7487519567871
+    },
+    "bridge_overhead_us": {
+      "p50": 54.300048828125,
+      "p90": 66.60004882812518,
+      "p99": 89.5000009765625,
+      "max": 3047.2998046875
+    },
+    "paired_samples": 100000,
+    "passed": true
+  },
+  "zero_gc": {
+    "gc_steady_bytes": 0,
+    "gc_steady_steps": 99900,
+    "passed": true
+  },
+  "nonfinite_obs_agents": 0
+}

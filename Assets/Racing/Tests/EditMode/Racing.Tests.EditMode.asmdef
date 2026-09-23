@@ -3,6 +3,7 @@
     "rootNamespace": "Racing.Tests",
     "references": [
         "Racing.Core",
+        "Racing.Bridge",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

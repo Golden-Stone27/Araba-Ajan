@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Racing/Scenes/Race_MLAgents.unity
     guid: 3de6b2f05fa0290488363ea6b0960229
+  - enabled: 1
+    path: Assets/Racing/Scenes/Race_Bridge.unity
+    guid: b72b58cdfb0b72f499a4b5d82c2d3de1
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}

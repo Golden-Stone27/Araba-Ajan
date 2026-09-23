@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "racing_rl"
+version = "0.3.0"
+description = "Custom TCP bridge (M3) and PyTorch PPO (M4/M5) for the Unity racing environment"
+requires-python = ">=3.10"
+dependencies = ["numpy>=2", "gymnasium>=1.1", "onnxruntime", "onnx", "pyyaml"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["racing_rl*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unity: needs the Unity bridge player (Builds/RaceEnv/RaceEnv.exe)",
+]

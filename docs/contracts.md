@@ -11,7 +11,7 @@
 | ML-Agents (Unity) | `com.unity.ml-agents` 4.0.x (Package Manager → Add by name). Mevcut `com.unity.ai.inference 2.6.1` ile çözümleme çakışırsa çözümlenen sürüm not edilir. |
 | Test | `com.unity.test-framework` manifest'e eklenir (M1). |
 | Baseline Python | **3.10.11** (`winget install Python.Python.3.10`), `.venv-mla`, `mlagents==1.1.0`, `torch~=2.2.1` CPU (`--index-url https://download.pytorch.org/whl/cpu`), `numpy==1.23.5`, `protobuf<3.21` |
-| Özel motor Python | 3.13 (kurulu), `.venv`. Paketler: `torch` (CPU), `gymnasium>=1.1`, `numpy>=2`, `pyyaml`, `tensorboard`, `onnxruntime`, `matplotlib`, `pytest`. 3.13 için wheel'i olmayan bir paket çıkarsa ortam 3.12'ye düşürülür. |
+| Özel motor Python | **3.10.11** (M3'te kullanıcı kararıyla 3.13 yerine; M4 PyTorch uyumluluğu), `.venv` (`D:\RaceAgent\.venv`). Paketler: `torch` (CPU), `gymnasium>=1.1`, `numpy>=2`, `pyyaml`, `tensorboard`, `onnxruntime`, `matplotlib`, `pytest`. |
 | Donanım | Yalnız CPU. Paralellik iki katmanlı: sahne içinde N ajan, K ayrı Unity süreci. |
 
 ## C0.2 Klasör düzeni (repo kökü = Unity proje kökü)
@@ -275,3 +275,27 @@ Aşamalar arası teslimler:
 - **Ortam tohumu:** Player'da `-envSeed S`; verilmezse `--mlagents-port × 1000` (paralel worker'lar farklı spawn akışı alır). `-numAgents N` desteklenir.
 - **`env_config_hash`:** `90240ee2b1a58b5b`, C0.14'te donduruldu.
 - **Baseline eğitim protokolü:** Tüm tohumlar aynı `race_ppo.yaml` (`max_steps: 1e7`, lineer lr/β/ε) ile başlatıldı. Seed 1 1e7'ye kadar koştu; seed 2–3 ~1M checkpoint export edilince durduruldu (`max_steps` 1M yapılsaydı lineer planlar 1M'de sıfırlanır, seed 1'le kıyaslanamazdı). Paralel koşularda `--base-port` farklıdır (5005/5105/5205).
+
+## C0.17 M3 uygulama notları
+
+- **Python ortamı:** `D:\RaceAgent\.venv`, Python 3.10.11. Paketler: numpy 2.2.6, gymnasium 1.3.0, onnxruntime 1.23.2, onnx 1.23.0, pytest 9.1.1. Kurulum: `pip install -e python`. torch M4'te eklenir.
+- **Build:** `Builds/RaceEnv/RaceEnv.exe`, sahne `Scenes/Race_Bridge.unity` (`Racing/Setup Bridge Scene (M3)`). Build komutu: `Racing.Editor.BuildScript.BuildBridge` (menü, MCP veya `-executeMethod`). TCP köprüsü ASCII dışı yolda da çalışır.
+- **seq numaraları:** HELLO `seq=0` ile gider. İlk istek CONFIG'dir (`seq=1`) ve READY bu değeri yankılar. RESET/STEP `2`'den başlayarak artar.
+- **STATE boyutu:** N = 16 için 4064 B.
+- **`lap_completed`:** K alt adım üzerinden OR'lanır.
+- **Done olan ajanın bilgileri:** `final_obs` ve `info` biten episode'a aittir.
+- **Blok içi reset ve ödül aktarımı:** Sıfırlanan ajan blok sonuna kadar sıfır aksiyonla bekler. Bu sürede kazandığı ödül yeni episode'a aittir ve **bir sonraki STATE'in ödülüne eklenir**. Böylece Σ reward = `ep_return` olur. Bekleme sırasında yeni episode da biterse (beklenmez), ajan yeniden sıfırlanır ve durum `double_done` sayacına yazılır.
+- **`ep_return`:** `RaceAgentCore` içinde double ile biriktirilir. float32 birikim 15k adımda ~1e-3 kayıyordu. Yalnız telemetriyi etkiler; ödüller ve hash değişmez.
+- **RESET = taze araçlar (`RaceEnvironment.RebuildAgents`):**
+  - **Bulgu:** `TeleportTo`, WheelCollider'ın iç PhysX durumunu (süspansiyon, temas, lastik) sıfırlamıyor. Teleport ile yapılan reset'ler bu yüzden önceki episode'a bağlı kalıyor: aynı tohumla fark ~0.5 (gözlem biriminde).
+  - **Denenen çözüm:** `TeleportTo` içinde tekerleri kapatıp açmak ilk episode dinamiğini değiştirdi (s1 flying lap 41.28 → 41.12 s). Env Freeze nedeniyle geri alındı.
+  - **Uygulanan çözüm:** Açık RESET mesajında köprü araçları yeniden kurar. Böylece `RESET(seed)` aynı süreç içinde bit düzeyinde tekrarlanabilir olur (`check_env` geçer) ve M2 eval'inin başlangıç koşuluyla birebir aynıdır.
+  - **Kapsam:** Oto-reset'ler (STEP içi) Core teleport'unu kullanmaya devam eder; M2 eğitimiyle aynıdır. Eğitim (M5) için bu tarihçe bağımlılığı yalnızca bir gürültü kaynağıdır. İki taze süreç arasındaki determinizm bundan etkilenmez.
+  - **Kural:** `RebuildAgents` ML-Agents sahnesinde kullanılmaz.
+- **`-bridgeTimingLog <yol>`:** İsteğe bağlıdır.
+  - Unity her istek için işleme süresini ikili dosyaya yazar: kayıt başına `'<IHxxf'` (seq, msg_type, unity_us).
+  - `<yol>.json` yan dosyası şunları içerir: istek ve mesaj sayaçları, `gc_steady_bytes` (ilk 100 STEP sonrası `GC.GetAllocatedBytesForCurrentThread` farkı), `double_done`.
+  - Köprü ek yükü = Python RTT − unity_us, seq bazında eşlenir.
+- **Batchmode:** Karede bir istek işlenir. Editor: 50 ms bütçe. Python'da `exe_path=None` Editor'ün Play ile bağlanmasını bekler (adım zaman aşımı 600 s).
+- **`RacingEnv` (N = 1) info:** NaN tur süreleri `None` döner, çünkü gymnasium `check_env` NaN'ı eşit saymaz. `UnityVecEnv` NaN'ı korur.
+- **Köprü değerlendiricisi (`racing_rl.bridge.evaluate`):** Tur süreleri kesindir (Unity sim saati). `mean_speed_mps` ve `sector_times_s` karar (0.1 s) örneklemesiyle hesaplanır; in-proc değerlendirici ise fizik adımı (0.02 s) örneklemesi kullanır.

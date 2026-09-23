@@ -1,0 +1,89 @@
+{
+  "schema": "race-benchmark/v1",
+  "policy": "mlagents-ppo",
+  "evaluator": "bridge",
+  "env_config_hash": "90240ee2b1a58b5b",
+  "obs_layout_hash": "b40ca79bdba1c2c2",
+  "unity": "6000.4.6f1",
+  "build_id": "1c6af42e1ed2481fbbb15a49da198c82",
+  "train_seeds": [
+    1
+  ],
+  "eval": {
+    "episodes": 20,
+    "seed_base": 1000,
+    "laps": 3,
+    "start": "grid",
+    "deterministic": true
+  },
+  "per_seed": [
+    {
+      "seed": 1,
+      "episodes": 20,
+      "completion_rate": 1.0,
+      "flying_lap_median_s": 41.279998779296875,
+      "flying_lap_best_s": 41.279998779296875,
+      "lap1_median_s": 44.31999969482422,
+      "mean_speed_mps": 26.624768496174998,
+      "steer_smoothness": 0.018179220353642778,
+      "term_reasons": {
+        "finished": 20
+      },
+      "sector_times_s": [
+        13.16149489486719,
+        14.860135006344557,
+        13.265755625709467
+      ],
+      "flying_laps_s": [
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.3,
+        41.28,
+        41.3,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.3,
+        41.28,
+        41.3,
+        41.28,
+        41.28,
+        41.3,
+        41.3,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.28,
+        41.3,
+        41.28,
+        41.28,
+        41.28,
+        41.3,
+        41.28,
+        41.3,
+        41.28,
+        41.3,
+        41.28,
+        41.28,
+        41.28
+      ]
+    }
+  ],
+  "model": "mlagents_baseline_s1.onnx",
+  "onnx_io": {
+    "inputs": [
+      "obs_0"
+    ],
+    "output": "deterministic_continuous_actions"
+  },
+  "wallclock_s": 3.74
+}
