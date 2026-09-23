@@ -1,0 +1,13 @@
+# M5 ablation: M4 "default" preset (tanh 256x2, clip transform, lr 3e-4 -> 0, eps 0.2, c_e 1e-3, 4 epochs, T 256).
+ppo:
+  preset: default
+run:
+  total_steps: 1.0e7
+  procs: 4             # sps_probe: 32 x 4 = 128 agents, 23.7k decisions/s with policy, p99 5.8 ms
+  agents: 32
+  eval_every: 25
+  eval_seed_base: 2000
+  eval_episodes: 20
+  ckpt_every: 10
+  max_checkpoints: 10
+  milestones: [1000000]

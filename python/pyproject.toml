@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "racing_rl"
-version = "0.4.0"
+version = "0.5.0"
 description = "Custom TCP bridge (M3) and PyTorch PPO (M4/M5) for the Unity racing environment"
 requires-python = ">=3.10"
 dependencies = ["numpy>=2", "gymnasium>=1.1", "onnxruntime", "onnx", "pyyaml", "torch>=2.2"]  # torch: CPU wheel (C0.1)

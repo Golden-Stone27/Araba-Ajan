@@ -1,0 +1,22 @@
+# M5 main run: ML-Agents race_ppo.yaml equivalent (M4 "parity" preset, docs/milestones/M4_pytorch_ppo.md).
+# silu 256x2, mlagents_scale, lr 3e-4 -> 1e-10, eps 0.2 -> 0.1, beta 5e-3 -> 1e-5, 3 epochs, minibatch 1024,
+# T = 20480 // N_total. Run section: K x N chosen by sps_probe (p99 < 50 ms, highest SPS).
+ppo:
+  preset: parity
+  # Loss-scale parity with ML-Agents 1.1 (optimizer_torch.py), config-only (M4 code untouched, contracts C0.19):
+  #  - entropy: ML-Agents uses beta * mean_j H_j, racing_rl sums over the 2 action dims -> halve beta
+  #    (5e-3 -> 1e-5 becomes 2.5e-3 -> 5e-6: identical loss term).
+  #  - value: ML-Agents 0.5 * mean(max(...)), racing_rl vf_coef * 0.5 * mean(max(...)) -> vf_coef 1.0.
+  ent_coef: 2.5e-3
+  ent_coef_end: 5.0e-6
+  vf_coef: 1.0
+run:
+  total_steps: 1.0e7
+  procs: 4             # sps_probe: 32 x 4 = 128 agents, 23.7k decisions/s with policy, p99 5.8 ms
+  agents: 32
+  eval_every: 25        # updates; validation seeds 2000..2019 (contracts C0.19)
+  eval_seed_base: 2000
+  eval_episodes: 20
+  ckpt_every: 10
+  max_checkpoints: 10
+  milestones: [1000000]

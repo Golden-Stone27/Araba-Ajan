@@ -47,6 +47,7 @@ __pycache__/
 /python/runs/
 /mlagents/results/
 /benchmarks/plots/*.tmp
+/benchmarks/eval/unity_logs/
 
 # --- OS ---
 .DS_Store
