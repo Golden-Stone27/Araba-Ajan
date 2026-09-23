@@ -326,5 +326,29 @@ Aşamalar arası teslimler:
 - **Değişmez:** Track_A (Benchmark) M5 ile bit düzeyinde aynıdır. `TrackFingerprint.Geometry` = `f6930a41d26c9e30`, `TrackFingerprint.Physical` = `4ee36c524bd1cf90` (`TrackAGoldenTests`). `env_config_hash` `90240ee2b1a58b5b` değişmez.
 - **Hash kuralı:** `TrackDefinition`'a M6'da eklenen alanlar kanonik JSON'a yalnızca varsayılan dışı değer aldıklarında yazılır. `profile` ve `notes` alanları meta veridir, hash'e girmez.
 - **Katalog:** `Assets/Racing/Config/TrackCatalog.asset`. 0. indeks her zaman Track_A'dır. Yeni pistler yalnızca sona eklenir; yayımlanmış indeksler değişmez. Kimlikler ASCII ve benzersizdir (Ordinal). Menü: `Racing/Tracks/Setup Track Catalog (M6)`, `Racing/Tracks/Report Tracks (M6)`.
-- **Evrensel pist kuralları:** `TrackValidator.CheckProfile`. 600 ≤ L ≤ 1600 m, R_min ≥ 12 m, öz-ayrım > W + 4, |koordinat| < 500, 10 ≤ W ≤ 14 m, toplam dönüş ±360° ± 5°. Profil kuralları `docs/milestones/M6_multitrack.md` dosyasındadır. Benchmark profili M1 ölçütleridir (`Report.Passed`).
+- **Evrensel pist kuralları:** `TrackValidator.CheckProfile`. 600 ≤ L ≤ 1600 m, R_min ≥ 12 m, öz-ayrım > W + 4, |koordinat| < 500, 10 ≤ W ≤ 14 m, toplam dönüş ±360° ± 5°. Profil kuralları `docs/milestones/M6_multitrack.md` dosyasındadır. Benchmark profili M1 ölçütleridir (`Report.Passed`). Procedural profili ayrıca sağa ve sola dönen virajlar ile R_min ≤ 40 m ister; bu, üreticinin yalnızca dışbükey ovaller üretmesini engeller.
 - **`TrackLayout`:** Düzlük ve yay zinciri. Başlangıç (0, 0), yön +x, pozitif açı sola döner. Zincir tam ±360° dönmelidir. Kapanma açığı iki flex düzlükle (2×2 çözüm) kapatılır, kalan artık yay uzunluğuna dağıtılır. Kontrol noktaları sınırlayıcı kutuya göre ortalanır ve santimetreye yuvarlanır. Ölçülen R_min tasarım yarıçapının ≈ 0.93 katıdır (spline geçiş aşımı).
+- **Katalog pistleri (dondurulmuş, `TrackFreezeTests`):**
+
+| İndeks | Kimlik | Profil | W | L | Kapı | `env_config_hash` | Geometri | Fiziksel |
+|---|---|---|---|---|---|---|---|---|
+| 0 | Track_A | Benchmark | 12 | 1144.1 | 114 | `90240ee2b1a58b5b` | `f6930a41d26c9e30` | `4ee36c524bd1cf90` |
+| 1 | Track_B | Technical | 11 | 1114.8 | 111 | `038a104393cbfb72` | `1badf7937c4d3373` | `e571cd02540992c9` |
+| 2 | Track_C | Speedway | 13 | 1262.5 | 126 | `0e099647315ed638` | `73a2aed396375311` | `783476a6f82becb7` |
+
+  - B ve C, `TrackLayouts.TechnicalB/SpeedwayC` düzenlerinden `Racing/Tracks/Bake Track Assets (M6)` menüsüyle bake edilir. `BakedAssets_MatchTheirLayouts` testi asset ile layout'un senkron kaldığını denetler.
+  - Diğer alanlar (duvar 1.5 × 1 m, segment 2 m, kapı aralığı 10 m, örnek aralığı 1 m, α 0.5) Track_A ile aynıdır.
+  - PurePursuit referans turları: B 67.08 / 65.02 / 65.00 s, C 44.14 / 40.28 / 40.26 s.
+- **Usulü pistler `proc:<seed>`:**
+  - Kaynak: `ProceduralTrackGenerator` v1. Tohum negatif olmayan bir ondalık int64'tür (`TryParseName`); `trackId` = `proc:<seed>`; katalog indeksi −1'dir.
+  - PCG32 akışı `0x70726f63` ("proc"). Her aday için:
+    - 10–18 düğüm; elips en-boy oranı 1–1.7; açı jitter'ı ±0.3 adım; radyal pertürbasyon 0.45–1.25
+    - rastgele güçte düzleştirme (0–0.5)
+    - rastgele rotasyon ve %50 aynalama (saat yönünde pist)
+    - W 10.5–13.5 m (0.5 m adımlarla); hedef L 800–1400 m (tam ölçekleme)
+    - santimetreye yuvarlama
+  - Adaylar evrensel ve Procedural kurallarıyla kabul edilir veya reddedilir; ilk geçen aday döner. En fazla 500 deneme; 0..199 tohumlarında ortalama 2.9, en fazla 13 deneme.
+  - Aynı tohum bit düzeyinde aynı pisti verir. Donmuş referanslar: `proc:0` `00724614a3c71752`, `proc:1` `860ce2361684922d`, `proc:7` `59966c9f08fc1027`, `proc:1000` `7b4353dd8647e3d3` (`env_config_hash`).
+  - Üretici değişirse `Version` artırılır ve bu tablo güncellenir.
+  - 0..99 tohumlarının yüzde 47'si saat yönündedir; PurePursuit 0..19 tohumlarının hepsinde temiz tur tamamlar.
+  - **Sınırlama (v1):** Uzun düzlük yoktur; en uzun düzlük 36–149 m arasındadır. Yüksek hız genellemesi için Track_C kullanılır.

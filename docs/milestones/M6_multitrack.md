@@ -1,5 +1,7 @@
 # M6: Çoklu Pist ve Usulü Pist Üretimi
 
+**Durum:** Adım 1 tamamlandı (`09145ed`). Adım 2 tamamlandı: Track_B, Track_C ve `ProceduralTrackGenerator` v1 (EditMode 67/67, PlayMode 16/16).
+
 > **Bağımlılıklar:** M1–M5 (commit `fddea58`). Sözleşme: [`../contracts.md`](../contracts.md) C0.20.
 > **Amaç:** Ajanın genelleme yeteneğini ölçmek ve artırmak için birden çok pisti (elle tasarlanmış ve tohumlu usulü) aynı ortamda, **Benchmark pistini (Track_A) ve C0.10 protokolünü bozmadan** çalıştırmak.
 > **Kural:** Her adımdan sonra durulur, rapor verilir ve komut beklenir. DoD'daki tüm maddeler geçmeden aşama tamamlanmış sayılmaz.
@@ -36,7 +38,7 @@
 | Track_B | Technical | L ≈ 1000–1200 m; en az 8 viraj, 1 saç tokası, 2 şikan; en uzun düzlük ≤ 150 m; W = 11 m |
 | Track_C | Speedway | L ≈ 1300 m; en uzun düzlük ≥ 250 m; R_min ≥ 60 m; W = 13 m |
 | Track_D | Elevation | Kot 0 → +10 m; eğim ≤ %6; W = 12 m |
-| `proc:<seed>` | Procedural | Yalnızca evrensel kurallar |
+| `proc:<seed>` | Procedural | Evrensel kurallar, sağ ve sol virajlar, R_min ≤ 40 m |
 
 **Evrensel kurallar** (`TrackValidator.CheckProfile`):
 - 600 ≤ L ≤ 1600 m (3 tur 300 s'ye sığmalı, C0.3)

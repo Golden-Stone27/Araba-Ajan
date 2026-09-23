@@ -54,6 +54,7 @@ namespace Racing.Core
         public const float UniversalMinLength = 600f, UniversalMaxLength = 1600f; // 3 laps must fit 300 s (C0.3)
         public const float MinWidth = 10f, MaxWidth = 14f;
         public const float TurnClosureToleranceDeg = 5f;
+        public const float ProceduralMaxMinRadius = 40f;
 
         /// <summary>
         /// Universal safety rules and the definition's character profile. Returns the failed rules (empty = pass).
@@ -91,9 +92,13 @@ namespace Racing.Core
                     Need(r.LongestStraight >= 250f, "longest straight >= 250", r.LongestStraight);
                     Need(r.MinRadius >= 60f, "min radius >= 60", r.MinRadius);
                     break;
-                case TrackProfile.Elevation:
                 case TrackProfile.Procedural:
-                    break; // Elevation rules: M6 step 3; Procedural: universal only
+                    // character floor so the generator does not only emit convex ovals
+                    Need(r.HasLeft && r.HasRight, "left and right turns", 0f);
+                    Need(r.MinRadius <= ProceduralMaxMinRadius, "a corner with R <= 40", r.MinRadius);
+                    break;
+                case TrackProfile.Elevation:
+                    break; // Elevation rules: M6 step 3
             }
             return fail;
         }

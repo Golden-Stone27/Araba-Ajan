@@ -195,4 +195,147 @@ namespace Racing.Tests
             }
         }
     }
+    /// <summary>Frozen values of the catalog tracks and of reference procedural seeds (contracts C0.20).</summary>
+    public class TrackFreezeTests
+    {
+        static T Load<T>(string path) where T : ScriptableObject
+        {
+            var a = AssetDatabase.LoadAssetAtPath<T>(path);
+            Assert.IsNotNull(a, path);
+            return a;
+        }
+
+        static string EnvHash(TrackDefinition def) => RaceEnvironment.ComputeEnvConfigHash(
+            Load<SimConfig>("Assets/Racing/Config/SimConfig.asset"), Load<VehicleConfig>("Assets/Racing/Config/VehicleConfig.asset"),
+            Load<RewardConfig>("Assets/Racing/Config/RewardConfig.asset"), def);
+
+        static void AssertFrozen(TrackDefinition def, string env, string geom, string phys)
+        {
+            var go = new GameObject("Freeze_" + def.trackId);
+            try
+            {
+                var rt = go.AddComponent<TrackRuntime>();
+                rt.Build(def);
+                Assert.AreEqual(env, EnvHash(def), def.trackId + " env_config_hash");
+                Assert.AreEqual(geom, TrackFingerprint.Geometry(rt.Geometry), def.trackId + " geometry");
+                Assert.AreEqual(phys, TrackFingerprint.Physical(rt), def.trackId + " colliders");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [TestCase(0, "Track_A", "90240ee2b1a58b5b", "f6930a41d26c9e30", "4ee36c524bd1cf90")]
+        [TestCase(1, "Track_B", "038a104393cbfb72", "1badf7937c4d3373", "e571cd02540992c9")]
+        [TestCase(2, "Track_C", "0e099647315ed638", "73a2aed396375311", "783476a6f82becb7")]
+        public void CatalogTrack_IsFrozen(int index, string id, string env, string geom, string phys)
+        {
+            TrackDefinition def = Load<TrackCatalog>(TrackCatalogTests.CatalogPath).Get(index);
+            Assert.IsNotNull(def);
+            Assert.AreEqual(id, def.trackId);
+            AssertFrozen(def, env, geom, phys);
+        }
+
+        [TestCase(0L, 6, "00724614a3c71752", "7dc3f2ac61cb7e06", "6ff9369609f9d493")]
+        [TestCase(1L, 1, "860ce2361684922d", "a3739e86d59576b9", "62891c418c443ff9")]
+        [TestCase(7L, 5, "59966c9f08fc1027", "8395cc520802ccb2", "8e8730edf48f8a74")]
+        [TestCase(1000L, 2, "7b4353dd8647e3d3", "9c863a016394b310", "2c72d61f4973a9db")]
+        public void ProceduralSeed_IsFrozen(long seed, int attempts, string env, string geom, string phys)
+        {
+            ProceduralTrackGenerator.Result r = ProceduralTrackGenerator.Generate(seed);
+            try
+            {
+                Assert.AreEqual(attempts, r.Attempts, "accept/reject path");
+                AssertFrozen(r.Definition, env, geom, phys);
+            }
+            finally
+            {
+                Object.DestroyImmediate(r.Definition);
+            }
+        }
+
+        [Test]
+        public void BakedAssets_MatchTheirLayouts()
+        {
+            (string path, System.Func<TrackLayout> layout)[] baked =
+            {
+                ("Assets/Racing/Config/TrackDefinition_B.asset", TrackLayouts.TechnicalB),
+                ("Assets/Racing/Config/TrackDefinition_C.asset", TrackLayouts.SpeedwayC),
+            };
+            foreach (var (path, layout) in baked)
+            {
+                Vector2[] expected = layout().Bake().ControlPoints;
+                Vector2[] actual = Load<TrackDefinition>(path).controlPoints;
+                Assert.AreEqual(expected.Length, actual.Length, path);
+                for (int i = 0; i < expected.Length; i++) Assert.AreEqual(expected[i], actual[i], path + " point " + i);
+            }
+        }
+    }
+
+    public class ProceduralTrackTests
+    {
+        [Test]
+        public void SameSeed_GivesBitIdenticalTrack()
+        {
+            foreach (long seed in new long[] { 3, 42, 123456789 })
+            {
+                ProceduralTrackGenerator.Result a = ProceduralTrackGenerator.Generate(seed), b = ProceduralTrackGenerator.Generate(seed);
+                Assert.AreEqual(a.Attempts, b.Attempts);
+                Assert.AreEqual(a.Definition.width, b.Definition.width);
+                Assert.AreEqual(TrackFingerprint.Geometry(new TrackGeometry(a.Definition)), TrackFingerprint.Geometry(new TrackGeometry(b.Definition)));
+                Assert.AreEqual(ConfigHash.Compute(a.Definition), ConfigHash.Compute(b.Definition));
+                Object.DestroyImmediate(a.Definition);
+                Object.DestroyImmediate(b.Definition);
+            }
+        }
+
+        [Test]
+        public void Seeds_0To99_AllPassAndAreDistinct()
+        {
+            var hashes = new System.Collections.Generic.HashSet<string>();
+            int cw = 0, maxAttempts = 0;
+            for (long seed = 0; seed < 100; seed++)
+            {
+                ProceduralTrackGenerator.Result r = ProceduralTrackGenerator.Generate(seed);
+                TrackDefinition def = r.Definition;
+                Assert.AreEqual("proc:" + seed, def.trackId);
+                Assert.AreEqual(TrackProfile.Procedural, def.profile);
+                CollectionAssert.IsEmpty(TrackValidator.CheckProfile(def, r.Report), def.trackId);
+                Assert.IsTrue(hashes.Add(ConfigHash.Compute(def)), "duplicate track for " + def.trackId);
+                if (r.Report.TotalTurnDeg < 0f) cw++;
+                maxAttempts = Mathf.Max(maxAttempts, r.Attempts);
+                Object.DestroyImmediate(def);
+            }
+            TestContext.WriteLine($"clockwise {cw}/100, max attempts {maxAttempts}");
+            Assert.That(cw, Is.InRange(25, 75), "both driving directions");
+            Assert.Less(maxAttempts, ProceduralTrackGenerator.MaxAttempts);
+        }
+
+        [TestCase("proc:0", true, 0L)]
+        [TestCase("proc:9223372036854775807", true, long.MaxValue)]
+        [TestCase("proc:", false, 0L)]
+        [TestCase("proc:-1", false, 0L)]
+        [TestCase("proc:+1", false, 0L)]
+        [TestCase("proc: 1", false, 0L)]
+        [TestCase("proc:1x", false, 0L)]
+        [TestCase("proc:9223372036854775808", false, 0L)]
+        [TestCase("PROC:1", false, 0L)]
+        [TestCase("Track_A", false, 0L)]
+        public void TryParseName(string name, bool ok, long seed)
+        {
+            Assert.AreEqual(ok, ProceduralTrackGenerator.TryParseName(name, out long parsed));
+            if (ok) Assert.AreEqual(seed, parsed);
+        }
+
+        [Test]
+        public void Catalog_ResolvesProceduralNames()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<TrackCatalog>(TrackCatalogTests.CatalogPath);
+            Assert.IsTrue(catalog.TryResolve("proc:7", out TrackDefinition def, out int index));
+            Assert.AreEqual(-1, index);
+            Assert.AreEqual("proc:7", def.trackId);
+            Object.DestroyImmediate(def);
+        }
+    }
 }

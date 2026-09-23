@@ -25,9 +25,18 @@ namespace Racing.Core
             return -1;
         }
 
-        /// <summary>Resolves a catalog track by id; also accepts the asset name (e.g. "TrackDefinition_B").</summary>
+        /// <summary>
+        /// Resolves a catalog track by id or asset name (e.g. "TrackDefinition_B"), or generates "proc:&lt;seed&gt;"
+        /// (ProceduralTrackGenerator; index = -1, not in the catalog).
+        /// </summary>
         public bool TryResolve(string name, out TrackDefinition def, out int index)
         {
+            if (ProceduralTrackGenerator.TryParseName(name, out long seed))
+            {
+                index = -1;
+                def = ProceduralTrackGenerator.Generate(seed).Definition;
+                return true;
+            }
             index = IndexOf(name);
             if (index < 0)
                 for (int i = 0; i < tracks.Length; i++)
