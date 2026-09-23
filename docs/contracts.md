@@ -261,3 +261,14 @@ Aşamalar arası teslimler:
 - **Fizik ayarı adı:** Enhanced Determinism, `DynamicsManager.asset` içinde `m_EnableEnhancedDeterminism` alanıdır (`Racing/Setup Project (M1)` menüsü ayarlar).
 - **Testleri çalıştırma (Editor açıkken):** `Racing.Editor.TestRunReporter.Run("EditMode")` veya `Run("PlayMode")`. Sonuçlar `TestResults/<Mode>_summary.txt` dosyasına yazılır.
 - **M1 ölçümleri (referans):** 0→100 km/h 6.04 s. 100→0 fren mesafesi 37.7 m. PurePursuit tur süreleri 54.58 s (kalkış) / 51.78 s / 51.78 s, en yüksek hız 144 km/h. Fuzz hızı 25k ajan-fizik-adımı/s (Editor, 16 ajan; ≈5k karar/s).
+
+## C0.16 M2 uygulama notları (Env Freeze henüz ilan edilmedi)
+
+- **Sürüm sapması (C0.1):** `com.unity.ml-agents` **4.1.0** kullanılıyor (4.0.3 ile player build `Google.Protobuf_Packed.dll` gölgelenmesi yüzünden derlenmiyor, ml-agents #6310). Communicator API 1.5.0, `mlagents==1.1.0` ile uyumlu. 4.1.0'daki resmi düzeltme Unity 6000.4.6f1'de yetmediği için `com.unity.ai.inference` 2.6.1 **gömülü paket** olarak `Packages/` altında; tek fark `Editor/ONNX/Google.Protobuf_Packed.dll.meta` (Standalone kapalı). Ayrıntı: `Packages/com.unity.ai.inference/EMBEDDED_PATCH.md`.
+- **ASCII yol zorunlu (C0.13):** gRPC native DLL'i ASCII dışı yolda yüklenmiyor. `D:\RaceAgent` junction'ı kullanılır. Eğitim build'i `D:\RaceAgent\Builds\RaceEnv_MLA\RaceEnv.exe` yolundan başlatılır. Editor'e bağlanarak eğitim için Unity projesi `D:\RaceAgent` yolundan açılmalıdır.
+- **Sayaçlar:** `EpisodeMonitor` zamanlayıcıları artık tamsayı fizik adımı sayar (`round(timeout/dt)`). Float birikimiyle 8 s Stuck 401. adımda (81. karar) tetikleniyordu; şimdi tam 400. adımda (80. karar).
+- **Öncelik:** Aynı adımda birden çok sinyal: PhysicsError > Wall > Flip > OutOfBounds > WrongWay > Stuck > Finished > TimeLimit (`TerminationPolicy`).
+- **Core API eklemeleri:** `RaceEnvironment.Create/Initialize(..., RewardConfig reward = null)`, `InitializeFromSerialized(n, seed, mode)`, `initializeOnAwake` alanı, `EnvConfigHash` (Sim+Vehicle+Reward+Track+obs). `RaceAgentCore.MaxLaps`, `EpisodeRewards`/`LastRewards` (`RewardBreakdown`). `AfterPhysicsStep` artık `Reward`, `Terminated`, `Truncated`, `Reason` doldurur; çekirdek kendini sıfırlamaz.
+- **Prefab yok (C0.15 ile tutarlı):** `RaceCar_MLA.prefab` yerine `RaceAgent.Attach(core, K, model, type, deterministic)` bileşenleri koddan ekler. Sahne: `Scenes/Race_MLAgents.unity` (`Racing/Setup ML-Agents Scene (M2)`).
+- **Ortam tohumu:** Player'da `-envSeed S`; verilmezse `--mlagents-port × 1000` (paralel worker'lar farklı spawn akışı alır). `-numAgents N` desteklenir.
+- **Geçerli `env_config_hash`:** `90240ee2b1a58b5b` (varsayılan RewardConfig ile; M2 DoD'da dondurulacak).

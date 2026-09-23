@@ -113,44 +113,51 @@ namespace Racing.Core
         }
     }
 
-    /// <summary>Produces EpisodeSignals every physics step. Decides nothing (M2 maps signals to reward/termination).</summary>
+    /// <summary>
+    /// Produces EpisodeSignals every physics step. Decides nothing (M2 maps signals to reward/termination).
+    /// Timers count integer physics steps (timeout / dt, rounded): accumulating 0.02f in float drifts and
+    /// fired the 8 s Stuck timeout one step late (step 401 = decision 81).
+    /// </summary>
     public sealed class EpisodeMonitor
     {
-        readonly SimConfig _sim;
         readonly float _halfCarWidth;
-        float _flipTime, _wrongWayTime, _sinceProgress;
+        readonly int _flipSteps, _wrongWaySteps, _noProgressSteps;
+        int _flipCount, _wrongWayCount, _sinceProgress;
 
         public EpisodeMonitor(SimConfig sim, float halfCarWidth)
         {
-            _sim = sim;
             _halfCarWidth = halfCarWidth;
+            _flipSteps = Steps(sim.flipTimeout, sim.fixedDeltaTime);
+            _wrongWaySteps = Steps(sim.wrongWayTimeout, sim.fixedDeltaTime);
+            _noProgressSteps = Steps(sim.noProgressTimeout, sim.fixedDeltaTime);
         }
+
+        static int Steps(float seconds, float dt) => Mathf.Max(1, Mathf.RoundToInt(seconds / dt));
 
         public void Reset()
         {
-            _flipTime = 0f;
-            _wrongWayTime = 0f;
-            _sinceProgress = 0f;
+            _flipCount = 0;
+            _wrongWayCount = 0;
+            _sinceProgress = 0;
         }
 
         public EpisodeSignals Evaluate(in VehicleState s, in TrackProjection p, ITrack track, bool wallContact, CheckpointEvent cp)
         {
-            float dt = _sim.fixedDeltaTime;
             var sig = new EpisodeSignals { WallContact = wallContact, Cp = cp };
             sig.NonFinite = !s.IsFinite || s.Position.sqrMagnitude > 1e8f;
 
             float upDot = Vector3.Dot(s.Rotation * Vector3.up, Vector3.up);
-            _flipTime = upDot < 0.3f ? _flipTime + dt : 0f;
-            sig.Flipped = _flipTime >= _sim.flipTimeout;
+            _flipCount = upDot < 0.3f ? _flipCount + 1 : 0;
+            sig.Flipped = _flipCount >= _flipSteps;
 
             sig.OutOfBounds = s.Position.y < -5f || Mathf.Abs(p.Lateral) > track.HalfWidth + 3f;
 
             float cosPsi = Mathf.Cos(ObservationBuilder.SignedHeadingErrorRad(s.Rotation, p.Tangent));
-            _wrongWayTime = cosPsi < -0.5f ? _wrongWayTime + dt : 0f;
-            sig.WrongWayHeading = _wrongWayTime >= _sim.wrongWayTimeout;
+            _wrongWayCount = cosPsi < -0.5f ? _wrongWayCount + 1 : 0;
+            sig.WrongWayHeading = _wrongWayCount >= _wrongWaySteps;
 
-            _sinceProgress = (cp == CheckpointEvent.Passed || cp == CheckpointEvent.LapCompleted) ? 0f : _sinceProgress + dt;
-            sig.NoProgressTimeout = _sinceProgress >= _sim.noProgressTimeout;
+            _sinceProgress = (cp == CheckpointEvent.Passed || cp == CheckpointEvent.LapCompleted) ? 0 : _sinceProgress + 1;
+            sig.NoProgressTimeout = _sinceProgress >= _noProgressSteps;
 
             sig.WallClearance = track.HalfWidth - Mathf.Abs(p.Lateral) - _halfCarWidth;
             return sig;

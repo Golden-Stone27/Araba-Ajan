@@ -13,10 +13,13 @@ namespace Racing.Core
         [SerializeField] SimConfig simConfig;
         [SerializeField] VehicleConfig vehicleConfig;
         [SerializeField] TrackDefinition trackDefinition;
+        [SerializeField] RewardConfig rewardConfig;
         [SerializeField] int numAgents = 1;
         [SerializeField] long seed = 1000;
         [SerializeField] StartMode startMode = StartMode.EvalGrid;
         [SerializeField] Material roadMaterial, wallMaterial, groundMaterial, carMaterial;
+        [Tooltip("Off when a driver (e.g. MlaSimulationDriver) calls InitializeFromSerialized with runtime arguments.")]
+        [SerializeField] bool initializeOnAwake = true;
 
         readonly List<RaceAgentCore> _agents = new List<RaceAgentCore>();
         DeterministicRng[] _rngs;
@@ -29,6 +32,7 @@ namespace Racing.Core
         public SimConfig Sim => simConfig;
         public VehicleConfig Vehicle => vehicleConfig;
         public TrackDefinition TrackDef => trackDefinition;
+        public RewardConfig Reward => rewardConfig;
         public long StepIndex { get; private set; }
         public StartMode CurrentStartMode { get; private set; }
         public int MaxLaps { get; private set; }
@@ -36,21 +40,29 @@ namespace Racing.Core
 
         void Awake()
         {
-            if (!IsInitialized && trackDefinition != null && vehicleConfig != null && simConfig != null)
-                Initialize(trackDefinition, vehicleConfig, simConfig, numAgents, seed, startMode);
+            if (initializeOnAwake && !IsInitialized && trackDefinition != null && vehicleConfig != null && simConfig != null)
+                Initialize(trackDefinition, vehicleConfig, simConfig, numAgents, seed, startMode, rewardConfig);
         }
 
-        public static RaceEnvironment Create(TrackDefinition track, VehicleConfig vehicle, SimConfig sim, int agents, long seed, StartMode mode)
+        /// <summary>Initializes with the serialized configs/materials but runtime agent count, seed and start mode.</summary>
+        public void InitializeFromSerialized(int agents, long initialSeed, StartMode mode) =>
+            Initialize(trackDefinition, vehicleConfig, simConfig, agents, initialSeed, mode, rewardConfig);
+
+        public static RaceEnvironment Create(TrackDefinition track, VehicleConfig vehicle, SimConfig sim, int agents, long seed, StartMode mode,
+                                             RewardConfig reward = null)
         {
             var go = new GameObject("RaceEnvironment");
             var env = go.AddComponent<RaceEnvironment>();
-            env.Initialize(track, vehicle, sim, agents, seed, mode);
+            env.Initialize(track, vehicle, sim, agents, seed, mode, reward);
             return env;
         }
 
-        public void Initialize(TrackDefinition track, VehicleConfig vehicle, SimConfig sim, int agents, long initialSeed, StartMode mode)
+        public void Initialize(TrackDefinition track, VehicleConfig vehicle, SimConfig sim, int agents, long initialSeed, StartMode mode,
+                               RewardConfig reward = null)
         {
             CultureBootstrap.Apply();
+            rewardConfig = reward != null ? reward : (rewardConfig != null ? rewardConfig : RewardConfig.CreateDefault());
+            _envConfigHash = null;
             trackDefinition = track;
             vehicleConfig = vehicle;
             simConfig = sim;
@@ -72,7 +84,7 @@ namespace Racing.Core
             {
                 VehicleController ctrl = VehicleFactory.Create(vehicle, sim, transform, "Car_" + i, carMaterial);
                 var agent = ctrl.gameObject.AddComponent<RaceAgentCore>();
-                agent.Initialize(i, TrackRuntime.Geometry, ctrl, sim, vehicle);
+                agent.Initialize(i, TrackRuntime.Geometry, ctrl, sim, vehicle, rewardConfig);
                 _agents.Add(agent);
                 _rngs[i] = new DeterministicRng(initialSeed + i);
             }
@@ -97,6 +109,7 @@ namespace Racing.Core
         public void ResetAgent(int i)
         {
             SpawnSpec spawn = SpawnSampler.Sample(CurrentStartMode, _rngs[i], Track);
+            _agents[i].MaxLaps = MaxLaps;
             _agents[i].BeginEpisode(spawn);
         }
 
@@ -110,10 +123,14 @@ namespace Racing.Core
             return _results;
         }
 
-        /// <summary>M1 part of env_config_hash (M2 appends RewardConfig, C0.11).</summary>
+        string _envConfigHash;
+        /// <summary>C0.11: Sim + Vehicle + Reward + Track + obs layout. Frozen after the M2 DoD (C0.14).</summary>
+        public string EnvConfigHash => _envConfigHash ?? (_envConfigHash = ComputeEnvConfigHash());
+
+        /// <summary>env_config_hash over Sim, Vehicle, Reward, Track and the obs layout (plus optional extra parts).</summary>
         public string ComputeEnvConfigHash(params IHashableConfig[] extra)
         {
-            var parts = new List<IHashableConfig> { simConfig, vehicleConfig, trackDefinition, new ObsLayoutPart() };
+            var parts = new List<IHashableConfig> { simConfig, vehicleConfig, rewardConfig, trackDefinition, new ObsLayoutPart() };
             if (extra != null) parts.AddRange(extra);
             return ConfigHash.Compute(parts.ToArray());
         }

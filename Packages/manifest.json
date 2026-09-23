@@ -2,6 +2,7 @@
   "dependencies": {
     "com.unity.ai.assistant": "2.19.0-pre.2",
     "com.unity.ai.inference": "2.6.1",
+    "com.unity.ml-agents": "4.1.0",
     "com.unity.multiplayer.center": "1.0.1",
     "com.unity.test-framework": "1.6.0",
     "com.unity.modules.accessibility": "1.0.0",

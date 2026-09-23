@@ -51,3 +51,7 @@ __pycache__/
 # --- OS ---
 .DS_Store
 Thumbs.db
+
+# ML-Agents editor timers / generated
+/[Aa]ssets/ML-Agents/
+/[Aa]ssets/ML-Agents.meta

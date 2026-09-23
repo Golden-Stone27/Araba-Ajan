@@ -14,12 +14,16 @@ namespace Racing.Core
         CheckpointTracker _tracker;
         LapTimer _lapTimer;
         EpisodeMonitor _monitor;
+        RewardCalculator _reward;
+        TerminationPolicy _termination;
 
         VehicleState _state;
         TrackProjection _projection;
         Vector3 _prevPos;
         int _physicsSteps;
         float _episodeReturn;
+        float _prevSteer;
+        RewardBreakdown _episodeRewards;
         AgentTelemetry _telemetry;
 
         public int Index { get; private set; }
@@ -36,8 +40,15 @@ namespace Racing.Core
         public AgentTelemetry Telemetry => _telemetry;
         public int PhysicsSteps => _physicsSteps;
         public IVehicleInputSource InputSource { get; set; }
+        /// <summary>Eval lap target (Finished truncation); 0 = unlimited. Set by RaceEnvironment.</summary>
+        public int MaxLaps { get; set; }
+        public RewardConfig RewardConfig => _reward.Config;
+        /// <summary>Per-component reward accumulated since BeginEpisode.</summary>
+        public RewardBreakdown EpisodeRewards => _episodeRewards;
+        public RewardBreakdown LastRewards { get; private set; }
 
-        public void Initialize(int index, TrackGeometry track, VehicleController controller, SimConfig sim, VehicleConfig vehicleConfig)
+        public void Initialize(int index, TrackGeometry track, VehicleController controller, SimConfig sim, VehicleConfig vehicleConfig,
+                               RewardConfig rewardConfig)
         {
             Index = index;
             _track = track;
@@ -48,6 +59,8 @@ namespace Racing.Core
             _tracker = new CheckpointTracker(track);
             _lapTimer = new LapTimer(sim.fixedDeltaTime);
             _monitor = new EpisodeMonitor(sim, vehicleConfig.halfWidthForClearance);
+            _reward = new RewardCalculator(rewardConfig != null ? rewardConfig : RewardConfig.CreateDefault(), sim.decisionPeriod);
+            _termination = new TerminationPolicy(sim);
         }
 
         public void BeginEpisode(in SpawnSpec spawn)
@@ -63,6 +76,9 @@ namespace Racing.Core
             _monitor.Reset();
             _physicsSteps = 0;
             _episodeReturn = 0f;
+            _prevSteer = 0f;
+            _episodeRewards = default;
+            LastRewards = default;
 
             _state = _controller.ReadState();
             _projection = _track.Project(_state.Position, -1);
@@ -78,7 +94,10 @@ namespace Racing.Core
         /// <summary>Called by RaceEnvironment right before Physics.Simulate.</summary>
         public void BeforePhysicsStep() => _collisions.ClearStep();
 
-        /// <summary>Post-physics (C0.8): progress, checkpoints, lap timing, signals. M1: reward is 0 and nothing terminates.</summary>
+        /// <summary>
+        /// Post-physics (C0.8): progress, checkpoints, lap timing, signals → TerminationPolicy + RewardCalculator (M2).
+        /// The core never resets itself; the driver (ML-Agents / bridge / sandbox) decides what to do with Terminated/Truncated.
+        /// </summary>
         public AgentStepResult AfterPhysicsStep()
         {
             _physicsSteps++;
@@ -103,7 +122,36 @@ namespace Racing.Core
             EpisodeSignals sig = _monitor.Evaluate(_state, _projection, _track, _collisions.WallContactThisStep, cp);
             LastSignals = sig;
 
-            var result = new AgentStepResult { Signals = sig, LapCompleted = lapDone, LapTime = lapTime };
+            TermReason reason = _termination.Evaluate(sig, _physicsSteps, _tracker.LapsCompleted, MaxLaps);
+            float steer = _controller.LastApplied.Steer;
+            var ctx = new StepContext
+            {
+                Velocity = _state.Velocity,
+                Tangent = _projection.Tangent,
+                WallClearance = sig.WallClearance,
+                Steer = steer,
+                PrevSteer = _prevSteer,
+                Cp = cp,
+                Reason = reason
+            };
+            _prevSteer = steer;
+            RewardBreakdown rb = _reward.Step(ctx);
+            LastRewards = rb;
+            _episodeRewards.Add(rb);
+            float r = rb.Total;
+            AddReward(r);
+            if (reason != TermReason.None) SetTermination(reason);
+
+            var result = new AgentStepResult
+            {
+                Reward = r,
+                Terminated = TerminationPolicy.IsTermination(reason),
+                Truncated = TerminationPolicy.IsTruncation(reason),
+                Reason = reason,
+                Signals = sig,
+                LapCompleted = lapDone,
+                LapTime = lapTime
+            };
             UpdateTelemetry(lapDone);
             return result;
         }

@@ -320,6 +320,7 @@ MonoBehaviour:
   simConfig: {fileID: 11400000, guid: d65d226abbc0bde4385b94dcfd4a0d18, type: 2}
   vehicleConfig: {fileID: 11400000, guid: dedd3292a062baf459ce4bca816f891f, type: 2}
   trackDefinition: {fileID: 11400000, guid: 929cb53cafa707b438d538fe711d99ce, type: 2}
+  rewardConfig: {fileID: 11400000, guid: 3b8b7bfc8dde9d1458d32010375ccbfe, type: 2}
   numAgents: 1
   seed: 1000
   startMode: 1
@@ -327,6 +328,7 @@ MonoBehaviour:
   wallMaterial: {fileID: 2100000, guid: 8c66c0e0f38ea58458b842d9cf4f9edb, type: 2}
   groundMaterial: {fileID: 2100000, guid: 0a033dd46e258c34f9e994f85170c02b, type: 2}
   carMaterial: {fileID: 2100000, guid: fff67953a0bec7b44ac1a3b3b332747a, type: 2}
+  initializeOnAwake: 1
 --- !u!4 &2098231706
 Transform:
   m_ObjectHideFlags: 0

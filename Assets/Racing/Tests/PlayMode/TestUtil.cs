@@ -17,9 +17,10 @@ namespace Racing.Tests
         public static SimConfig Sim => Load("Assets/Racing/Config/SimConfig.asset", SimConfig.CreateDefault);
         public static VehicleConfig Vehicle => Load("Assets/Racing/Config/VehicleConfig.asset", VehicleConfig.CreateDefault);
         public static TrackDefinition Track => Load("Assets/Racing/Config/TrackDefinition_A.asset", TrackDefinition.CreateDefault);
+        public static RewardConfig Reward => Load("Assets/Racing/Config/RewardConfig.asset", RewardConfig.CreateDefault);
 
         public static RaceEnvironment CreateEnv(int agents, long seed, StartMode mode) =>
-            RaceEnvironment.Create(Track, Vehicle, Sim, agents, seed, mode);
+            RaceEnvironment.Create(Track, Vehicle, Sim, agents, seed, mode, Reward);
 
         public static void Destroy(Object o)
         {

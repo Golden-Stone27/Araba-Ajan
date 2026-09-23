@@ -3,6 +3,9 @@
     "rootNamespace": "Racing.Editor",
     "references": [
         "Racing.Core",
+        "Racing.MLAgents",
+        "Unity.ML-Agents",
+        "Unity.InferenceEngine",
         "UnityEditor.TestRunner",
         "UnityEngine.TestRunner"
     ],

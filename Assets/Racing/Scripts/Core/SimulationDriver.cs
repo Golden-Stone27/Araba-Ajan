@@ -5,8 +5,8 @@ namespace Racing.Core
     /// <summary>
     /// M1 "Manual" driver for the Sandbox scene: every FixedUpdate applies keyboard (agent 0) or
     /// pure-pursuit input, then env.PhysicsStep(). Keys: P autopilot, R reset, H HUD.
-    /// Resets only on flip / out-of-bounds / non-finite (and stuck for autopilot cars); wall hits
-    /// are shown on the HUD. Real termination rules belong to M2.
+    /// Autopilot cars reset on any M2 termination/truncation; the keyboard car resets only on
+    /// flip / out-of-bounds / non-finite so wall hits can be inspected on the HUD.
     /// </summary>
     [DefaultExecutionOrder(-800)]
     public sealed class SimulationDriver : MonoBehaviour
@@ -48,7 +48,8 @@ namespace Racing.Core
             {
                 EpisodeSignals s = results[i].Signals;
                 bool machine = i != 0 || autopilot;
-                if (s.Flipped || s.OutOfBounds || s.NonFinite || (machine && s.NoProgressTimeout)) environment.ResetAgent(i);
+                bool done = results[i].Terminated || results[i].Truncated;
+                if (s.Flipped || s.OutOfBounds || s.NonFinite || (machine && done)) environment.ResetAgent(i);
             }
         }
     }
