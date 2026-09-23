@@ -128,9 +128,14 @@ namespace Racing.Core
         public string EnvConfigHash => _envConfigHash ?? (_envConfigHash = ComputeEnvConfigHash());
 
         /// <summary>env_config_hash over Sim, Vehicle, Reward, Track and the obs layout (plus optional extra parts).</summary>
-        public string ComputeEnvConfigHash(params IHashableConfig[] extra)
+        public string ComputeEnvConfigHash(params IHashableConfig[] extra) =>
+            ComputeEnvConfigHash(simConfig, vehicleConfig, rewardConfig, trackDefinition, extra);
+
+        /// <summary>Same hash without a running environment (EditMode tests, tools). Frozen value: contracts.md C0.14.</summary>
+        public static string ComputeEnvConfigHash(SimConfig sim, VehicleConfig vehicle, RewardConfig reward, TrackDefinition track,
+                                                  params IHashableConfig[] extra)
         {
-            var parts = new List<IHashableConfig> { simConfig, vehicleConfig, rewardConfig, trackDefinition, new ObsLayoutPart() };
+            var parts = new List<IHashableConfig> { sim, vehicle, reward, track, new ObsLayoutPart() };
             if (extra != null) parts.AddRange(extra);
             return ConfigHash.Compute(parts.ToArray());
         }
