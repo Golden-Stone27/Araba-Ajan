@@ -16,14 +16,18 @@ from gymnasium.vector.utils import batch_space
 
 from .errors import (BridgeError, DesyncError, ProtocolMismatchError, RemoteError, UnityCrashedError,
                      UnityLaunchError, UnityTimeoutError)
-from .protocol import (ACT_DIM, FROZEN_ENV_CONFIG_HASH, INFO_FIELDS, INFO_STRUCT, MSG_CLOSE, MSG_CONFIG, MSG_ERROR,
-                       MSG_HELLO, MSG_NAMES, MSG_READY, MSG_RESET, MSG_STATE, MSG_STEP, OBS_DIM, OBS_HIGH, OBS_LOW,
-                       PROTOCOL, RESET, StateView, decode_state, layout_hash)
+from .protocol import (ACT_DIM, FROZEN_ENV_CONFIG_HASH, HELLO_TRACK_FIELDS, INFO_FIELDS, INFO_STRUCT, MSG_CLOSE,
+                       MSG_CONFIG, MSG_ERROR, MSG_HELLO, MSG_NAMES, MSG_READY, MSG_RESET, MSG_STATE, MSG_STEP, OBS_DIM,
+                       OBS_HIGH, OBS_LOW, PROTOCOL, RESET, StateView, decode_state, layout_hash)
+from .tracks import TrackSpec, load_catalog, resolve_track
 from .transport import FramedSocket, bind_server
 from .unity_process import UnityProcess
 
 EDITOR_STEP_TIMEOUT_S = 600.0
 MAX_RESTARTS_PER_HOUR = 3
+# expected_env_hash default: the track's catalog hash (Track_A without a track, as in M3-M5; None for an unfrozen proc seed)
+AUTO = "auto"
+TRACK_FLAGS = ("-trackName", "-trackIndex")
 
 
 class _Resources:
@@ -58,18 +62,31 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
     (SAME_STEP): obs is the new episode's first observation, infos["final_obs"][i] / infos["final_info"]
     hold the finished episode (mask "_final_obs"). infos[field] carries every RACE_INFO_V1 field; for a done
     agent it describes the finished episode. exe_path=None waits for the Unity Editor (Play) instead.
+
+    track (M6): catalog id, asset name or proc:<seed> (racing_rl.bridge.tracks). The player gets -trackName, CONFIG
+    carries expected_track_id and HELLO's track_id / track_index / track_hash are checked; the track is fixed for the
+    process (C0.20). In Editor mode (exe_path=None) the scene's BridgeDriver.trackOverride selects the track and the
+    CONFIG check guards it. expected_env_hash=AUTO takes the track's catalog hash. track=None is the M5 path: no flag,
+    no expected_track_id, Track_A's hash. infos["track_index"] is HELLO's track_index (-1 for proc) when the build
+    reports it; env.track_info holds the HELLO track fields (None for a pre-M6 build).
     """
 
     metadata = {"autoreset_mode": gymnasium.vector.AutoresetMode.SAME_STEP}
 
     def __init__(self, exe_path: str | os.PathLike | None, num_agents: int = 16, port: int = 6005,
-                 expected_env_hash: str | None = FROZEN_ENV_CONFIG_HASH, log_dir: str | os.PathLike = "runs/unity_logs",
+                 expected_env_hash: str | None = AUTO, log_dir: str | os.PathLike = "runs/unity_logs",
                  step_timeout_s: float | None = None, launch_timeout_s: float = 180.0, *, host: str = "127.0.0.1",
                  strict: bool = True, extra_args: list[str] | None = None, headless: bool = True,
-                 record_rtt: bool = False, timing_log: str | os.PathLike | None = None, launch_retries: int = 1):
+                 record_rtt: bool = False, timing_log: str | os.PathLike | None = None, launch_retries: int = 1,
+                 track: str | None = None):
         self.exe_path = None if exe_path is None else str(Path(exe_path).resolve())
         if self.exe_path is not None and not Path(self.exe_path).is_file():
             raise UnityLaunchError(f"Unity player not found: {self.exe_path}")
+        self.track: TrackSpec | None = None if track is None else resolve_track(track)
+        if self.track is not None and any(f in TRACK_FLAGS for f in (extra_args or [])):
+            raise ValueError("pass the track either as track= or as -trackName/-trackIndex in extra_args, not both")
+        if expected_env_hash == AUTO:
+            expected_env_hash = FROZEN_ENV_CONFIG_HASH if self.track is None else self.track.expected_env_hash
         self.requested_agents = num_agents
         self.host = host
         self.base_port = port
@@ -81,6 +98,8 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
             60.0 if self.exe_path else EDITOR_STEP_TIMEOUT_S)
         self.launch_timeout_s = launch_timeout_s
         self.extra_args = list(extra_args or [])
+        if self.track is not None and self.exe_path:
+            self.extra_args += ["-trackName", self.track.id]
         self.timing_log = None if timing_log is None else Path(timing_log)
         if self.timing_log is not None:
             self.extra_args += ["-bridgeTimingLog", str(self.timing_log.resolve())]
@@ -93,6 +112,7 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
         self._res = _Resources()
         self._finalizer = weakref.finalize(self, self._res.shutdown, True)
         self.hello: dict = {}
+        self.track_info: dict | None = None
         self.port: int | None = None
         self.nonfinite_obs = 0
         self.requests_sent = 0
@@ -111,6 +131,10 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
         self.observation_space = batch_space(self.single_observation_space, n)
         self.action_space = batch_space(self.single_action_space, n)
         self._actions = np.zeros((n, ACT_DIM), np.float32)
+        self._track_index = None  # shared, read-only per-agent array for infos["track_index"]
+        if self.track_info is not None:
+            self._track_index = np.full(n, self.track_info["track_index"], np.int32)
+            self._track_index.flags.writeable = False
         self.closed = False
 
     # ------------------------------------------------------------------ launch / handshake
@@ -186,15 +210,19 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
             problems.append(f"env_config_hash {hello.get('env_config_hash')} != {self.expected_env_hash}")
         if self.exe_path and hello.get("num_agents") != self.requested_agents:
             problems.append(f"num_agents {hello.get('num_agents')} != {self.requested_agents}")
+        problems += self._track_problems(hello)
         if problems and self.strict:
             self._res.shutdown(graceful=True)
             raise ProtocolMismatchError("; ".join(problems))
         for p in problems:
             warnings.warn("bridge handshake (strict=False): " + p)
+        self.track_info = _track_info(hello)
 
         self._res.seq = 1
         cfg = {"expected_obs_layout_hash": self.expected_obs_hash,
                "expected_env_config_hash": self.expected_env_hash or "", "strict": self.strict}
+        if self.track is not None:
+            cfg["expected_track_id"] = self.track.id
         sock.send(MSG_CONFIG, 1, json.dumps(cfg).encode("utf-8"))
         t, seq, payload = sock.recv()
         if t == MSG_ERROR:
@@ -203,6 +231,22 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
             raise ProtocolMismatchError(f"Unity rejected CONFIG: {err}")
         if t != MSG_READY or seq != 1:
             raise DesyncError(f"expected READY seq=1, got {MSG_NAMES.get(t, hex(t))} seq={seq}")
+
+    def _track_problems(self, hello: dict) -> list[str]:
+        if self.track is None:
+            return []
+        if "track_id" not in hello:
+            return ["HELLO has no track fields: the build predates M6 step 4 (track selection needs Builds/RaceEnv)"]
+        if hello["track_id"] != self.track.id:
+            hint = "" if self.exe_path else " (Editor: set BridgeDriver.trackOverride in the scene)"
+            return [f"track_id {hello['track_id']} != {self.track.id}{hint}"]
+        out = []
+        if hello.get("track_index") != self.track.index:
+            out.append(f"track_index {hello.get('track_index')} != {self.track.index}")
+        e = self.track.entry
+        if e is not None and hello.get("track_hash") != e.track_hash:
+            out.append(f"track_hash {hello.get('track_hash')} != {e.track_hash}")
+        return out
 
     # ------------------------------------------------------------------ request / reply
     def _send(self, msg_type: int, payload) -> None:
@@ -312,6 +356,9 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
         for f in INFO_FIELDS:
             infos[f] = info[f]
             infos["_" + f] = ones
+        if self._track_index is not None:
+            infos["track_index"] = self._track_index
+            infos["_track_index"] = ones
         if not reset:
             done = (sv.terminated | sv.truncated).astype(bool)
             infos["final_obs"] = sv.final_obs.copy()
@@ -341,3 +388,14 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
     @property
     def connected(self) -> bool:
         return self._res.sock is not None
+
+
+def _track_info(hello: dict) -> dict | None:
+    """HELLO track fields + env_config_hash and the catalog profile; None when the build predates M6 step 4."""
+    if "track_id" not in hello:
+        return None
+    info = {f: hello.get(f) for f in HELLO_TRACK_FIELDS}
+    info["env_config_hash"] = hello.get("env_config_hash")
+    entry = load_catalog().entry(info["track_id"])
+    info["profile"] = entry.profile if entry else ("Procedural" if info["track_index"] == -1 else None)
+    return info

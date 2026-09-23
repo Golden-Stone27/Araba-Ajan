@@ -1,8 +1,8 @@
 # M6 Devir Teslim: Çoklu Pist ve Usulü Pist Üretimi
 
 > **Okuma sırası:** Önce bu dosyayı, sonra [`docs/milestones/M6_multitrack.md`](docs/milestones/M6_multitrack.md) planını ve DoD'yi, en son [`docs/contracts.md`](docs/contracts.md) **C0.20** bölümünü oku. Bağlayıcı sayılar, hash'ler ve kurallar contracts'tadır.
-> **Tarih:** 2026-09-23. **Dal:** `GS`. **Son commit'ler:** Watch sahnesi `d3f2def`, Adım 1 `09145ed`, Adım 2 `4395397`, Adım 3 `77fe15f`, devir teslim `0f2c6c3`, **Adım 4 `c452638`** (`feat(m6): CLI track flags, bridge hello/config protocol and build verification`). Bu dosyanın Adım 4 sonrası güncellemesi `c452638`'den sonra yapıldı.
-> **Sıradaki iş:** Adım 5 (Python entegrasyonu ve sıfır atış raporu), bkz. §4.
+> **Tarih:** 2026-09-23. **Dal:** `GS`. **Son commit'ler:** Watch sahnesi `d3f2def`, Adım 1 `09145ed`, Adım 2 `4395397`, Adım 3 `77fe15f`, devir teslim `0f2c6c3`, **Adım 4 `c452638`** (`feat(m6): CLI track flags, bridge hello/config protocol and build verification`). Adım 4 sonrası devir teslim `ec5e4ce`. **Adım 5 çalışma ağacında tamamlandı**; commit kullanıcı komutuyla atılacak.
+> **Durum:** **M6 tamamlandı** (DoD'nin tamamı işaretli). Sıradaki iş kullanıcının kararına bağlı, bkz. §4.
 
 ## 1. Çalışma kuralları (kullanıcı tercihleri)
 
@@ -21,13 +21,22 @@
   - Python ortamı `D:\RaceAgent\.venv` (3.10.11, torch 2.14.0+cpu, `pip install -e python` kurulu).
   - Donanım yalnızca CPU.
 
-## 2. Mevcut durum: Adım 1–4 tamam (`c452638`)
+## 2. Mevcut durum: M6 tamam (Adım 1–5)
 
 **Testler (hepsi yeşil):**
-- EditMode **121/121**. Adım 4 ile +47 test geldi (`BridgeTrackTests`).
-- PlayMode **20/20**. Track_C taze ortam determinizmi eklendi.
-- Python `pytest` **67/67**. Gerçek build'e karşı koşan `-m unity` testleri dahil; yalnız slow testi hariç.
+- EditMode **123/123**. Adım 4 ile +47 test (`BridgeTrackTests`), Adım 5 ile +2 test (`TrackCatalogExportTests`) geldi.
+- PlayMode **22/22**. Adım 5'te PurePursuit 3 tur testine `proc:1` ve `proc:1000` eklendi.
+- Python `pytest` **116/116**: 67 eski test, `tests/test_m6_tracks.py` (mock, 41) ve `tests/test_unity_tracks.py` (gerçek build, `-m unity`, 8). Yalnız slow testi hariç.
 - Unity sonuçları `TestResults/*_summary.txt` dosyalarında.
+
+**Adım 5 özeti (ayrıntı: contracts C0.20 "Python (Adım 5)" ve "Sıfır atış (Adım 5)"):**
+- **Katalog:** `python/racing_rl/bridge/track_catalog.json`, Unity menüsü `Racing/Tracks/Export Track Catalog (M6)` ile üretilir (yalnız Editor kodu, build değişmedi). EditMode testi JSON'un güncel olduğunu denetler; katalog veya pist değişirse menü yeniden çalıştırılmalıdır.
+- **`racing_rl.bridge.tracks`:** `resolve_track`, `load_catalog`, `composite_hash`, `training_tracks`, `UnknownTrackError`.
+- **Ortamlar:** `UnityVecEnv(track=)` (`-trackName`, CONFIG `expected_track_id`, HELLO denetimi, `track_info`, `infos["track_index"]`) ve `MultiUnityVecEnv(tracks=)` (süreç k: `tracks[k % len]`). `expected_env_hash` varsayılanı `AUTO`'dur.
+- **CLI:** `train_ppo --track` (tekrarlanabilir) / YAML `run.tracks` / `--eval-track`, `train.evaluate --track`, `train.watch --track`.
+- **Checkpoint:** `env_config_hash` tek pistte o pistin hash'i, karışık eğitimde `multi:<sha16>`; `extra.tracks = {id: hash}`. Biçim `racing_rl.ppo/v1` değişmedi. `load_policy` artık checkpoint'in eğitim hash'ini katalogla denetliyor (değerlendirilen pistten bağımsız).
+- **Regresyon:** Track_A, `m6_bridge_check.py regress` ile yeniden koşuldu (13/13 bit düzeyinde aynı). Sıfır atış betiği de Track_A'yı yeni API'yle koşup M5 ile birebir aynı sonucu aldı (6/6).
+- **Sıfır atış (`benchmarks/M6_TRACKS.md`):** 42 değerlendirmenin 20'si bitti. Track_C ve `proc:1000` 6/6, Track_B ve Track_D 0/6. Çarpışmalar dar virajlarda ve Track_D'de yokuşun sonunda kümeleniyor. C0.10 deterministik protokolü pist başına ikili (0 veya 1) sonuç veriyor.
 
 **Build durumu:**
 - `Builds/RaceEnv/RaceEnv.exe` Adım 4 koduyla alındı (`build_id` `ee81723cde19439da2497c9fb946fc4c`, gitignore). `c452638`'deki player koduyla aynıdır; sonradan değişen tek dosya bir PlayMode testidir ve build'e girmez.
@@ -106,7 +115,9 @@ Geometri ve fiziksel parmak izleri de C0.20 tablosunda ve `TrackFreezeTests` tes
 
 Özet §2'de, bağlayıcı kurallar contracts C0.20 "Köprü" bölümünde.
 
-### Adım 5: Python entegrasyonu ve sıfır atış raporu (SIRADAKİ)
+### Adım 5: Python entegrasyonu ve sıfır atış raporu: TAMAMLANDI
+
+Özet §2'de. Aşağıdaki liste kayıt için duruyor.
 
 **Başlangıç noktası (Adım 4 sonrası Python durumu):**
 - `UnityVecEnv(..., extra_args=[...])` ile `-trackName` bugün de elle geçirilebiliyor. HELLO pist alanları `env.hello` içinde geliyor.
@@ -144,9 +155,15 @@ Geometri ve fiziksel parmak izleri de C0.20 tablosunda ve `TrackFreezeTests` tes
    - 10M karma eğitim **kapsam dışıdır**; karar sonraya bırakıldı.
 7. **Kapanış:** M6 DoD'deki kalan üç kutu (Python, sıfır atış raporu, contracts C0.20 güncel) işaretlenir. C0.20 "devam ediyor" başlığından çıkarılır.
 
+### Sonraki olası işler (kullanıcı kararı; hiçbiri başlatılmadı)
+
+1. **10M karma eğitim** (`train_ppo --track ...`): altyapı hazır ve mock ile test edildi. Rapor, eğitim dağılımına dar ve ardışık virajlı pistlerin (Track_B, `proc:` tohumları) ve kotlu pistlerin eklenmesini öneriyor. Doğrulama şu an yalnız ilk pistte yapılıyor; çok pistli model seçimi ayrı bir karardır.
+2. **Genelleme protokolü:** C0.10 (deterministik μ, ±0.5 m / ±2°) pist başına ikili sonuç veriyor. Daha çeşitli başlangıçlar veya daha çok pist ile ek bir protokol düşünülebilir. C0.10'un kendisi değişmemeli (M2–M5 kıyasları ona bağlı).
+3. **Eğim algısı:** Gözlemde kot veya eğim bilgisi yok (C0.6). Track_D bulgusu bunu bir hipotez olarak gösteriyor; gözlem düzeni değişirse `obs_layout_hash` ve tüm dondurulmuş hash'ler değişir (Env Freeze).
+
 ## 5. Diğer
 
-- **`python/scripts/watch_ediyor.py`:** Kullanıcının canlı izleme betiği; `best.pt`'yi Editor'deki Race_Bridge sahnesinde gerçek zamanlı sürdürür. Çalıştırma: `cd python` ardından `python scripts/watch_ediyor.py [ckpt]`. Genel sürüm: `python -m racing_rl.train.watch`. Editor'de başka pist izlemek için sahnedeki `BridgeDriver.trackOverride` alanına kimlik veya `proc:<seed>` yazılır (`train.watch` Adım 5'teki `--track` bayrağına kadar beklenen hash olarak Track_A'yı kullanır ve başka pisti `ProtocolMismatchError` ile reddeder).
+- **`python/scripts/watch_ediyor.py`:** Kullanıcının canlı izleme betiği; `best.pt`'yi Editor'deki Race_Bridge sahnesinde gerçek zamanlı sürdürür. Çalıştırma: `cd python` ardından `python scripts/watch_ediyor.py [ckpt]`. Genel sürüm: `python -m racing_rl.train.watch`. Editor'de başka pist izlemek için sahnedeki `BridgeDriver.trackOverride` alanına kimlik veya `proc:<seed>` yazılır ve `python -m racing_rl.train.watch --track <aynı kimlik>` çalıştırılır. `--track` verilmezse beklenen pist Track_A'dır ve başka pist `ProtocolMismatchError` ile reddedilir. `watch_ediyor.py`'ye dokunulmadı (kullanıcı kuralı); yalnız Track_A ile çalışır.
 - **Konsol kodlaması:** Proje yolu ASCII değil ve Python konsolu cp1252. Betik çıktılarında tam yolu yazdırmak `UnicodeEncodeError` verir; yalnız dosya adı yazdırılır.
 - **Çalışma planı hafızası:** Kullanıcı hafıza dosyaları `C:\Users\27ome\.claude\projects\D--Unity-Projects-Araba-Yar----Ajan-\memory\` altında.
 
@@ -154,4 +171,4 @@ Geometri ve fiziksel parmak izleri de C0.20 tablosunda ve `TrackFreezeTests` tes
 
 İlk mesajda aşağıdaki görevi başlat:
 
-> "`M6_HANDOVER.md`, `docs/milestones/M6_multitrack.md` ve `docs/contracts.md` C0.20'yi (özellikle 'Köprü') oku. `git log --oneline -5` ile Adım 4 commit'ini (`c452638`) doğrula. Unity MCP ile EditMode (121) ve PlayMode (20) testlerini, `python -m pytest` ile Python testlerini (67) çalıştırıp yeşil olduklarını teyit et. Ardından **M6 Adım 5** için dosya bazında kısa bir uygulama planı (`track_catalog.json` + export menüsü, `UnityVecEnv(track=)`, `MultiUnityVecEnv(tracks=)`, `--track` bayrakları, checkpoint `extra.tracks`, mock testleri, sıfır atış raporu) sun ve kullanıcının 'başla' komutunu bekle."
+> "`M6_HANDOVER.md`, `benchmarks/M6_TRACKS.md` ve `docs/contracts.md` C0.20'yi oku. `git log --oneline -5` ile M6 Adım 5 commit'ini doğrula. Unity MCP ile EditMode (123) ve PlayMode (22) testlerini, `python -m pytest` ile Python testlerini (116) çalıştırıp yeşil olduklarını teyit et. M6 tamamlandı; §4'teki 'Sonraki olası işler' listesini kullanıcıya özetle ve hangisiyle devam edileceğine dair kararını bekle."

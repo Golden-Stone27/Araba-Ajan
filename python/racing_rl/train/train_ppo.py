@@ -17,6 +17,14 @@ trainer state, RNGs, milestones); TensorBoard / CSV rows after that step are pur
 
 Run directory: run.json (args, git sha, hashes), config.yaml (PPOConfig), checkpoints/, best.pt, milestone_*.pt,
 metrics.{jsonl,csv}, eval.jsonl, tb/, unity_logs/.
+
+Tracks (M6, contracts C0.20): --track T (repeatable) or run.tracks in the YAML; process k runs tracks[k % len] for
+its whole life (MultiUnityVecEnv). Validation runs on run.eval_track (default: the first track). Checkpoints and
+run.json carry env_config_hash = that track's hash (one track) or the composite "multi:<sha>" (several tracks,
+racing_rl.bridge.tracks.composite_hash) and extra.tracks = {id: env_config_hash}. No --track is the M5 run (Track_A).
+
+    python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --seed 1 --run-dir ../runs/m6/mix_s1 \\
+        --track Track_A --track Track_B --track Track_C --track Track_D
 """
 
 from __future__ import annotations
@@ -41,6 +49,7 @@ from racing_rl.bridge.errors import BridgeError, UnityCrashedError
 from racing_rl.bridge.evaluate import per_seed_report, run_eval
 from racing_rl.bridge.multi_env import MultiUnityVecEnv
 from racing_rl.bridge.protocol import FROZEN_ENV_CONFIG_HASH, FROZEN_OBS_LAYOUT_HASH
+from racing_rl.bridge.tracks import resolve_track
 from racing_rl.bridge.vec_env import UnityVecEnv
 from racing_rl.rl import (ActorCritic, EpisodeStats, PPOConfig, PPOTrainer, RolloutBuffer, TorchPolicy,
                           actor_critic_from_checkpoint, collect_rollout, eval_rank, load_checkpoint, restore_rng)
@@ -57,6 +66,7 @@ MAX_RESTARTS_PER_HOUR = 3
 RUN_DEFAULTS = {
     "total_steps": 10_000_000, "procs": 3, "agents": 16, "eval_every": 25, "ckpt_every": 10, "max_checkpoints": 10,
     "eval_seed_base": 2000, "eval_episodes": 20, "milestones": [1_000_000], "base_port": 6005, "eval_port": 6205,
+    "tracks": None, "eval_track": None,
 }
 
 
@@ -108,6 +118,16 @@ def prune(ckpt_dir: Path, keep: int) -> None:
     found = sorted((int(m.group(1)), p) for p in ckpt_dir.iterdir() if (m := CKPT_RE.match(p.name)))
     for _, p in found[:max(len(found) - keep, 0)]:
         p.unlink()
+
+
+def normalize_tracks(run: dict) -> None:
+    """Canonical track ids (unknown names fail before any Unity process starts); eval_track defaults to tracks[0]."""
+    tracks = run.get("tracks")
+    if isinstance(tracks, str):
+        tracks = [tracks]
+    run["tracks"] = [resolve_track(t).id for t in tracks] if tracks else None
+    ev = run.get("eval_track")
+    run["eval_track"] = resolve_track(ev).id if ev else (run["tracks"][0] if run["tracks"] else None)
 
 
 def reset_seed(seed: int, update: int, attempt: int = 0) -> int:
@@ -169,6 +189,9 @@ def main(argv: list[str] | None = None) -> int:
               "base_port", "eval_port"):
         ap.add_argument("--" + k.replace("_", "-"), type=float if k == "total_steps" else int)
     ap.add_argument("--milestones", type=float, nargs="*")
+    ap.add_argument("--track", dest="tracks", action="append", metavar="TRACK",
+                    help="catalog id or proc:<seed>; repeat for mixed-track training (process k: tracks[k %% len])")
+    ap.add_argument("--eval-track", help="validation track (default: the first --track)")
     ap.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE", help="PPOConfig overrides")
     ap.add_argument("--max-updates", type=int, help="stop after this many updates in this session (tests)")
     ap.add_argument("--no-tensorboard", action="store_true")
@@ -183,9 +206,11 @@ def main(argv: list[str] | None = None) -> int:
         ckpt_path = latest_checkpoint(ckpt_dir)
         if ckpt_path is None:
             raise SystemExit(f"--resume: no ckpt_*.pt in {ckpt_dir}")
-        ckpt = load_checkpoint(ckpt_path, FROZEN_ENV_CONFIG_HASH, FROZEN_OBS_LAYOUT_HASH)
+        ckpt = load_checkpoint(ckpt_path, meta.get("env_config_hash") or FROZEN_ENV_CONFIG_HASH, FROZEN_OBS_LAYOUT_HASH)
         cfg = PPOConfig.from_dict(ckpt["config"])
         run = dict(meta["run"])
+        run.setdefault("tracks", None)  # M5 run directories predate the track keys
+        run.setdefault("eval_track", None)
         seed = int(meta["seed"])
         for k in ("base_port", "eval_port"):  # the only knobs a resume may change
             if getattr(a, k) is not None:
@@ -204,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
                 run[k] = v
         run["total_steps"] = int(run["total_steps"])
         run["milestones"] = [int(x) for x in run["milestones"]]
+        normalize_tracks(run)
         seed = int(a.seed if a.seed is not None else 1)
         meta = {"seed": seed, "run": run, "config_file": a.config, "overrides": a.set, "git_sha": git_sha(),
                 "env_config_hash": None, "obs_layout_hash": None, "exe": a.exe, "host": socket.gethostname(),
@@ -222,15 +248,19 @@ def main(argv: list[str] | None = None) -> int:
     status = "error"
     try:
         envs = MultiUnityVecEnv(exe, num_processes=run["procs"], num_agents=run["agents"], base_port=run["base_port"],
-                                expected_env_hash=FROZEN_ENV_CONFIG_HASH, log_dir=run_dir / "unity_logs")
+                                log_dir=run_dir / "unity_logs", tracks=run["tracks"])
         hello = envs.envs[0].hello
+        env_hash = envs.env_config_hash  # the track's hash, or multi:<sha> over several tracks
+        track_hashes = dict(envs.env_hashes)
         if not a.resume:
-            meta.update(env_config_hash=hello["env_config_hash"], obs_layout_hash=hello["obs_layout_hash"],
+            meta.update(env_config_hash=env_hash, tracks=track_hashes, obs_layout_hash=hello["obs_layout_hash"],
                         unity=hello["unity"], build_id=hello["build_id"])
             (run_dir / "run.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+        elif env_hash != meta["env_config_hash"]:
+            raise SystemExit(f"--resume: environment {env_hash} != run.json {meta['env_config_hash']}")
         if run["eval_every"] > 0:
             eval_env = UnityVecEnv(exe, num_agents=run["eval_episodes"], port=run["eval_port"],
-                                   expected_env_hash=FROZEN_ENV_CONFIG_HASH, log_dir=run_dir / "unity_logs")
+                                   log_dir=run_dir / "unity_logs", track=run["eval_track"])
 
         N = envs.num_envs
         obs_dim = int(envs.single_observation_space.shape[0])
@@ -256,15 +286,16 @@ def main(argv: list[str] | None = None) -> int:
         ep_stats = EpisodeStats(N)
         logger = RunLogger(run_dir, purge_step=global_step if ckpt is not None else None,
                            tensorboard=not a.no_tensorboard)
+        tracks_note = f", tracks {envs.track_ids} (eval {run['eval_track']})" if run["tracks"] else ""
         print(f"[train] {run_dir.name}: seed {seed}, preset {cfg.preset}, K={run['procs']} × N={run['agents']} "
               f"(N_total {N}), T={T}, {T * N} decisions/update, {num_updates} updates, "
-              f"env {hello['env_config_hash']}", flush=True)
+              f"env {env_hash}{tracks_note}", flush=True)
 
         def checkpoint(path: Path, extra: dict | None = None) -> None:
             st = dict(state, wallclock_s=state["wallclock_s"] + (time.perf_counter() - t_session))
-            save_checkpoint(path, ac, trainer.optimizer, cfg, global_step, hello["env_config_hash"],
-                            hello["obs_layout_hash"],
-                            {"trainer": trainer.state_dict(), "update": update, "state": st, **(extra or {})}, np_rng)
+            save_checkpoint(path, ac, trainer.optimizer, cfg, global_step, env_hash, hello["obs_layout_hash"],
+                            {"trainer": trainer.state_dict(), "update": update, "state": st, "tracks": track_hashes,
+                             **(extra or {})}, np_rng)
 
         t_session = time.perf_counter()
         obs = np.asarray(envs.reset(seed=reset_seed(seed, update))[0], np.float32)
@@ -350,8 +381,10 @@ def main(argv: list[str] | None = None) -> int:
                         state["best_median"] = per_seed["flying_lap_median_s"]
                         state["best_step"] = global_step
                         checkpoint(run_dir / "best.pt", {"eval": per_seed})
-                    logger.log_eval(global_step, per_seed, {"update": update, "best": is_best,
-                                                            "seed_base": run["eval_seed_base"]})
+                    eval_meta = {"update": update, "best": is_best, "seed_base": run["eval_seed_base"]}
+                    if run["eval_track"]:
+                        eval_meta["track"] = run["eval_track"]
+                    logger.log_eval(global_step, per_seed, eval_meta)
             logger.log_update(m)
             session_updates += 1
             _print_update(m, num_updates)
