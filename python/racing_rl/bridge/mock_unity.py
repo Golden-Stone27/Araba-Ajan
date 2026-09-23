@@ -9,6 +9,7 @@ in-block reset, reward carry-over, lap flag OR-ed over sub-steps) and can inject
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import socket
@@ -17,24 +18,30 @@ import time
 
 import numpy as np
 
-from .protocol import (ACT_DIM, FROZEN_ENV_CONFIG_HASH, HEADER, INFO_STRUCT, MAGIC, MSG_CLOSE, MSG_CONFIG, MSG_ERROR,
-                       MSG_HELLO, MSG_READY, MSG_RESET, MSG_STATE, MSG_STEP, OBS_DIM, PROTOCOL, RACE_INFO_DTYPE, RESET,
-                       VERSION, StartMode, StateLayout, TermReason, encode_state, layout_hash)
+from .protocol import (ACT_DIM, ERR_HASH_MISMATCH, ERR_TRACK_MISMATCH, FROZEN_ENV_CONFIG_HASH, HEADER, INFO_STRUCT, MAGIC,
+                       MSG_CLOSE, MSG_CONFIG, MSG_ERROR, MSG_HELLO, MSG_READY, MSG_RESET, MSG_STATE, MSG_STEP, OBS_DIM,
+                       PROTOCOL, RACE_INFO_DTYPE, RESET, VERSION, StartMode, StateLayout, TermReason, encode_state,
+                       layout_hash)
 
 RADIUS = 60.0
 HALF_WIDTH = 6.0
 LENGTH = 2.0 * math.pi * RADIUS
+CHECKPOINTS = 16
 
 
 class MockUnity:
     def __init__(self, port: int, num_agents: int = 4, host: str = "127.0.0.1", decision_period: int = 5,
                  fixed_dt: float = 0.02, max_episode_decisions: int = 3000, env_config_hash: str = FROZEN_ENV_CONFIG_HASH,
                  obs_layout_hash: str | None = None, desync_at_step: int | None = None, hang_at_step: int | None = None,
-                 hang_s: float = 5.0, crash_at_step: int | None = None):
+                 hang_s: float = 5.0, crash_at_step: int | None = None, track_id: str = "mock_circle",
+                 track_index: int = -1):
         self.host, self.port, self.n, self.k, self.dt = host, port, num_agents, decision_period, fixed_dt
         self.max_dec = max_episode_decisions
         self.env_hash = env_config_hash
         self.obs_hash = obs_layout_hash or layout_hash()
+        # HELLO track fields (M6); the kinematics stay the circle whatever the id says.
+        self.track_id, self.track_index = track_id, track_index
+        self.track_hash = hashlib.sha256(f"{track_id}|{RADIUS}|{HALF_WIDTH}".encode()).hexdigest()[:16]
         self.desync_at, self.hang_at, self.hang_s, self.crash_at = desync_at_step, hang_at_step, hang_s, crash_at_step
         self.steps = 0
         self.requests = 0
@@ -140,7 +147,7 @@ class MockUnity:
         rec["term_reason"] = self.reason[i]
         rec["lap_completed"] = lap_flag
         rec["laps"] = self.laps[i]
-        rec["next_cp"] = int(self.s[i] / LENGTH * 16) % 16
+        rec["next_cp"] = int(self.s[i] / LENGTH * CHECKPOINTS) % CHECKPOINTS
         rec["reserved"] = 0
         rec["ep_decisions"] = self.steps_ep[i] // self.k
         rec["last_lap_s"] = self.last_lap[i]
@@ -218,16 +225,23 @@ class MockUnity:
             hello = {"protocol": PROTOCOL, "env": "mock_circle", "unity": "mock", "build_id": "mock", "num_agents": self.n,
                      "obs_dim": OBS_DIM, "act_dim": ACT_DIM, "obs_layout_hash": self.obs_hash,
                      "env_config_hash": self.env_hash, "fixed_dt": self.dt, "decision_period": self.k,
-                     "max_episode_decisions": self.max_dec, "info_struct": INFO_STRUCT}
+                     "max_episode_decisions": self.max_dec, "info_struct": INFO_STRUCT,
+                     "track_id": self.track_id, "track_index": self.track_index, "track_length_m": LENGTH,
+                     "track_checkpoints": CHECKPOINTS, "track_half_width": HALF_WIDTH, "track_hash": self.track_hash}
             _send(sock, MSG_HELLO, 0, json.dumps(hello).encode())
             t, seq, payload = _recv(sock)
             if t != MSG_CONFIG:
                 return
             cfg = json.loads(payload)
-            ok = (not cfg.get("expected_env_config_hash") or cfg["expected_env_config_hash"] == self.env_hash) and \
-                 (not cfg.get("expected_obs_layout_hash") or cfg["expected_obs_layout_hash"] == self.obs_hash)
-            if not ok and cfg.get("strict", True):
-                _send(sock, MSG_ERROR, seq, json.dumps({"code": "HASH_MISMATCH", "message": "mock", "fatal": True}).encode())
+            # Same order as BridgeProtocol.CheckConfig: the track id first, then the hashes.
+            code = None
+            if cfg.get("expected_track_id") and cfg["expected_track_id"] != self.track_id:
+                code = ERR_TRACK_MISMATCH
+            elif not ((not cfg.get("expected_env_config_hash") or cfg["expected_env_config_hash"] == self.env_hash) and
+                      (not cfg.get("expected_obs_layout_hash") or cfg["expected_obs_layout_hash"] == self.obs_hash)):
+                code = ERR_HASH_MISMATCH
+            if code and cfg.get("strict", True):
+                _send(sock, MSG_ERROR, seq, json.dumps({"code": code, "message": "mock", "fatal": True}).encode())
                 return
             _send(sock, MSG_READY, seq, b'{"ok":true}')
             self.reset_all(0, 0, 0)
@@ -289,8 +303,11 @@ def main() -> None:
     p.add_argument("--port", type=int, default=6005)
     p.add_argument("--num-agents", type=int, default=4)
     p.add_argument("--max-episode-decisions", type=int, default=3000)
+    p.add_argument("--track-id", default="mock_circle")
+    p.add_argument("--track-index", type=int, default=-1)
     a = p.parse_args()
-    MockUnity(a.port, a.num_agents, max_episode_decisions=a.max_episode_decisions).run()
+    MockUnity(a.port, a.num_agents, max_episode_decisions=a.max_episode_decisions, track_id=a.track_id,
+              track_index=a.track_index).run()
 
 
 if __name__ == "__main__":

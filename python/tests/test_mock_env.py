@@ -1,5 +1,6 @@
 """UnityVecEnv against mock_unity (no Unity needed): reset/step/auto-reset/final_obs/desync/timeout/crash."""
 
+import json
 import socket
 
 import numpy as np
@@ -8,7 +9,9 @@ import pytest
 from racing_rl.bridge import (DesyncError, ProtocolMismatchError, RemoteError, UnityCrashedError, UnityTimeoutError,
                               UnityVecEnv)
 from racing_rl.bridge.mock_unity import MockUnity
-from racing_rl.bridge.protocol import INFO_FIELDS, OBS_DIM, TermReason
+from racing_rl.bridge.protocol import (ERR_HASH_MISMATCH, ERR_TRACK_MISMATCH, HELLO_TRACK_FIELDS, INFO_FIELDS, MSG_CONFIG,
+                                       MSG_ERROR, MSG_HELLO, MSG_READY, OBS_DIM, TermReason, layout_hash)
+from racing_rl.bridge.transport import FramedSocket, bind_server
 
 
 def free_port() -> int:
@@ -134,6 +137,63 @@ def test_hash_mismatch_detected_by_unity_side():
 
 def test_remote_error_type():
     assert issubclass(RemoteError, Exception)
+
+
+def test_hello_carries_track_fields():
+    """M6: HELLO appends the track fields; the M3 fields and PROTOCOL stay as they were."""
+    env, _ = make(2, track_id="Track_B", track_index=1)
+    try:
+        h = env.hello
+        assert set(HELLO_TRACK_FIELDS) <= set(h)
+        assert h["protocol"] == 1 and h["env_config_hash"] and h["obs_dim"] == OBS_DIM
+        assert h["track_id"] == "Track_B" and h["track_index"] == 1
+        assert isinstance(h["track_checkpoints"], int) and h["track_checkpoints"] > 0
+        assert h["track_length_m"] > 0 and h["track_half_width"] > 0
+        assert len(h["track_hash"]) == 16
+    finally:
+        env.close()
+
+
+def raw_handshake(cfg: dict, **mock_kw) -> tuple[dict, int, dict]:
+    """HELLO/CONFIG by hand (UnityVecEnv sends expected_track_id from M6 step 5 on). Returns (hello, reply type, reply)."""
+    srv, port = bind_server("127.0.0.1", free_port())
+    try:
+        MockUnity(port, 2, **mock_kw).start_thread()
+        srv.settimeout(10.0)
+        conn, _ = srv.accept()
+    finally:
+        srv.close()
+    sock = FramedSocket(conn, 10.0)
+    try:
+        t, _, payload = sock.recv()
+        assert t == MSG_HELLO
+        hello = json.loads(bytes(payload))
+        sock.send(MSG_CONFIG, 1, json.dumps(cfg).encode())
+        t, seq, payload = sock.recv()
+        assert seq == 1
+        return hello, t, json.loads(bytes(payload))
+    finally:
+        sock.close()
+
+
+@pytest.mark.parametrize("cfg, reply, code", [
+    ({"expected_track_id": "Track_D", "strict": True}, MSG_READY, None),
+    ({"expected_track_id": "", "strict": True}, MSG_READY, None),
+    ({"expected_track_id": "Track_A", "strict": True}, MSG_ERROR, ERR_TRACK_MISMATCH),
+    ({"expected_track_id": "Track_A", "strict": False}, MSG_READY, None),
+    # the track id is checked before the hashes (BridgeProtocol.CheckConfig)
+    ({"expected_track_id": "Track_A", "expected_env_config_hash": "0000000000000000", "strict": True}, MSG_ERROR,
+     ERR_TRACK_MISMATCH),
+    ({"expected_track_id": "Track_D", "expected_env_config_hash": "0000000000000000", "strict": True}, MSG_ERROR,
+     ERR_HASH_MISMATCH),
+])
+def test_config_expected_track_id(cfg, reply, code):
+    cfg = {"expected_obs_layout_hash": layout_hash(), **cfg}
+    hello, t, body = raw_handshake(cfg, track_id="Track_D", track_index=3)
+    assert hello["track_id"] == "Track_D"
+    assert t == reply, body
+    if code is not None:
+        assert body["code"] == code and body["fatal"] is True
 
 
 def test_eval_grid_finishes():

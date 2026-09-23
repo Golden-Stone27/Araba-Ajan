@@ -1,0 +1,231 @@
+{
+  "check": "cross_process_determinism",
+  "ok": true,
+  "agents": 16,
+  "steps": 1500,
+  "seed": 1000,
+  "action_seed": 0,
+  "policy": "custom_ppo_s1.pt",
+  "tracks": [
+    {
+      "track": "Track_D",
+      "scenario": "actions",
+      "start_mode": 0,
+      "env_config_hash": "dbce4b7f772fc7b4",
+      "ok": true,
+      "processes": 2,
+      "resets_per_process": 2,
+      "states_per_run": 1501,
+      "stream_sha256_16": "af8b93ca3978c35b",
+      "first_diff_within_process": [
+        null,
+        null
+      ],
+      "first_diff_across_processes": [
+        null,
+        null
+      ],
+      "dones_per_run": [
+        698,
+        698,
+        698,
+        698
+      ],
+      "laps_per_run": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "max_speed_mps": 13.622218132019043,
+      "decisions_above_20mps_per_twentieth": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c"
+    },
+    {
+      "track": "Track_D",
+      "scenario": "policy",
+      "start_mode": 0,
+      "env_config_hash": "dbce4b7f772fc7b4",
+      "ok": true,
+      "processes": 2,
+      "resets_per_process": 2,
+      "states_per_run": 1501,
+      "stream_sha256_16": "5077e928c812f216",
+      "first_diff_within_process": [
+        null,
+        null
+      ],
+      "first_diff_across_processes": [
+        null,
+        null
+      ],
+      "dones_per_run": [
+        132,
+        132,
+        132,
+        132
+      ],
+      "laps_per_run": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "max_speed_mps": 36.86006164550781,
+      "decisions_above_20mps_per_twentieth": [
+        568,
+        545,
+        651,
+        920,
+        1024,
+        992,
+        1037,
+        1015,
+        612,
+        692,
+        1066,
+        1115,
+        1017,
+        1061,
+        1457,
+        1417,
+        1276,
+        1419,
+        591,
+        111
+      ],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c"
+    },
+    {
+      "track": "Track_A",
+      "scenario": "actions",
+      "start_mode": 0,
+      "env_config_hash": "90240ee2b1a58b5b",
+      "ok": true,
+      "processes": 2,
+      "resets_per_process": 2,
+      "states_per_run": 1501,
+      "stream_sha256_16": "2d43c69685306920",
+      "first_diff_within_process": [
+        null,
+        null
+      ],
+      "first_diff_across_processes": [
+        null,
+        null
+      ],
+      "dones_per_run": [
+        714,
+        714,
+        714,
+        714
+      ],
+      "laps_per_run": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "max_speed_mps": 12.781782150268555,
+      "decisions_above_20mps_per_twentieth": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c"
+    },
+    {
+      "track": "Track_A",
+      "scenario": "policy",
+      "start_mode": 0,
+      "env_config_hash": "90240ee2b1a58b5b",
+      "ok": true,
+      "processes": 2,
+      "resets_per_process": 2,
+      "states_per_run": 1501,
+      "stream_sha256_16": "1ecaac573381b7df",
+      "first_diff_within_process": [
+        null,
+        null
+      ],
+      "first_diff_across_processes": [
+        null,
+        null
+      ],
+      "dones_per_run": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "laps_per_run": [
+        41,
+        41,
+        41,
+        41
+      ],
+      "max_speed_mps": 37.22903060913086,
+      "decisions_above_20mps_per_twentieth": [
+        1100,
+        961,
+        880,
+        929,
+        1033,
+        1272,
+        1201,
+        1115,
+        1227,
+        204,
+        1176,
+        1243,
+        1113,
+        1004,
+        979,
+        951,
+        1029,
+        1473,
+        1242,
+        1276
+      ],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c"
+    }
+  ]
+}

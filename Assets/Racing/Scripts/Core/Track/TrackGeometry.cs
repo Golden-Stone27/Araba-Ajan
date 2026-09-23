@@ -67,7 +67,9 @@ namespace Racing.Core
 
     /// <summary>
     /// Pure (GameObject-free) track geometry: arc-length resampled centreline, tangents, right vectors,
-    /// signed curvature radii and checkpoint gates. Flat track at y = 0.
+    /// signed curvature radii and checkpoint gates. s is the horizontal (XZ) arc length. Samples carry the
+    /// definition's elevation (y = HeightAt(s / L), 0 for flat tracks); tangents are 3D (along the slope),
+    /// right vectors horizontal, radii and projection horizontal (M6, C0.20: bit-identical for y = 0).
     /// </summary>
     public sealed class TrackGeometry : ITrack
     {
@@ -115,6 +117,8 @@ namespace Racing.Core
                 Vector2 a = dense[j], b = dense[(j + 1) % m];
                 _p[k] = new Vector3((float)(a.x + u * (b.x - a.x)), 0f, (float)(a.y + u * (b.y - a.y)));
             }
+            if (def.HasElevation)
+                for (int k = 0; k < count; k++) _p[k].y = (float)def.HeightAt(k * ds / total);
 
             _t = new Vector3[count];
             _n = new Vector3[count];
@@ -126,7 +130,7 @@ namespace Racing.Core
                 _t[k] = d.normalized;
                 _n[k] = Vector3.Cross(Vector3.up, _t[k]).normalized;
 
-                Vector3 a = _p[(k - RadiusHalfSpan + count) % count], b = _p[k], c = _p[(k + RadiusHalfSpan) % count];
+                Vector3 a = Flat(_p[(k - RadiusHalfSpan + count) % count]), b = Flat(_p[k]), c = Flat(_p[(k + RadiusHalfSpan) % count]);
                 float cross = (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
                 float area2 = Mathf.Abs(cross);
                 if (area2 < 1e-6f)
@@ -160,6 +164,8 @@ namespace Racing.Core
         public float SampleS(int k) => Wrap(k) * SampleSpacing;
 
         int Wrap(int k) { int n = _p.Length; k %= n; return k < 0 ? k + n : k; }
+
+        static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
         public float WrapS(float s)
         {
@@ -226,7 +232,7 @@ namespace Racing.Core
             for (int i = 0; i < span; i++)
             {
                 int k = Wrap(start + i);
-                Vector3 a = _p[k], b = _p[Wrap(k + 1)];
+                Vector3 a = Flat(_p[k]), b = Flat(_p[Wrap(k + 1)]);
                 Vector3 ab = b - a;
                 float u = Mathf.Clamp01(Vector3.Dot(q - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-9f));
                 float d2 = (a + ab * u - q).sqrMagnitude;
@@ -234,9 +240,10 @@ namespace Racing.Core
             }
 
             Vector3 pa = _p[bestK], pb = _p[Wrap(bestK + 1)];
-            Vector3 dir = (pb - pa).normalized;
-            Vector3 foot = pa + (pb - pa) * bestU;
-            Vector3 right = Vector3.Cross(Vector3.up, dir);
+            Vector3 dir = (pb - pa).normalized; // along the slope (reward v·t̂)
+            Vector3 fa = Flat(pa), fb = Flat(pb);
+            Vector3 foot = fa + (fb - fa) * bestU;
+            Vector3 right = Vector3.Cross(Vector3.up, (fb - fa).normalized);
             float lateral = Vector3.Dot(q - foot, right);
             float s = (bestK + bestU) * SampleSpacing;
             return new TrackProjection(WrapS(s), lateral, dir, bestK);

@@ -1,0 +1,208 @@
+{
+  "check": "smoke",
+  "ok": true,
+  "cases": [
+    {
+      "flags": [],
+      "ok": true,
+      "env": "TrackDefinition_A",
+      "env_config_hash": "90240ee2b1a58b5b",
+      "track_id": "Track_A",
+      "track_index": 0,
+      "track_length_m": 1144.08984,
+      "track_checkpoints": 114,
+      "track_half_width": 6,
+      "track_hash": "0f2fbf3481a1a24f"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Track_A"
+      ],
+      "ok": true,
+      "env": "TrackDefinition_A",
+      "env_config_hash": "90240ee2b1a58b5b",
+      "track_id": "Track_A",
+      "track_index": 0,
+      "track_length_m": 1144.08984,
+      "track_checkpoints": 114,
+      "track_half_width": 6,
+      "track_hash": "0f2fbf3481a1a24f"
+    },
+    {
+      "flags": [
+        "-trackIndex",
+        "0"
+      ],
+      "ok": true,
+      "env": "TrackDefinition_A",
+      "env_config_hash": "90240ee2b1a58b5b",
+      "track_id": "Track_A",
+      "track_index": 0,
+      "track_length_m": 1144.08984,
+      "track_checkpoints": 114,
+      "track_half_width": 6,
+      "track_hash": "0f2fbf3481a1a24f"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Track_B"
+      ],
+      "ok": true,
+      "env": "TrackDefinition_B",
+      "env_config_hash": "038a104393cbfb72",
+      "track_id": "Track_B",
+      "track_index": 1,
+      "track_length_m": 1114.82642,
+      "track_checkpoints": 111,
+      "track_half_width": 5.5,
+      "track_hash": "6ce4f5d0b0d07eda"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "TrackDefinition_B"
+      ],
+      "ok": true,
+      "env": "TrackDefinition_B",
+      "env_config_hash": "038a104393cbfb72",
+      "track_id": "Track_B",
+      "track_index": 1,
+      "track_length_m": 1114.82642,
+      "track_checkpoints": 111,
+      "track_half_width": 5.5,
+      "track_hash": "6ce4f5d0b0d07eda"
+    },
+    {
+      "flags": [
+        "-trackIndex",
+        "2"
+      ],
+      "ok": true,
+      "env": "TrackDefinition_C",
+      "env_config_hash": "0e099647315ed638",
+      "track_id": "Track_C",
+      "track_index": 2,
+      "track_length_m": 1262.51855,
+      "track_checkpoints": 126,
+      "track_half_width": 6.5,
+      "track_hash": "ff0ea58517167d6f"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Track_D",
+        "-trackIndex",
+        "3"
+      ],
+      "ok": true,
+      "env": "TrackDefinition_D",
+      "env_config_hash": "dbce4b7f772fc7b4",
+      "track_id": "Track_D",
+      "track_index": 3,
+      "track_length_m": 1094.44836,
+      "track_checkpoints": 109,
+      "track_half_width": 6,
+      "track_hash": "04f6036ec025016a"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "proc:7"
+      ],
+      "ok": true,
+      "env": "proc:7",
+      "env_config_hash": "59966c9f08fc1027",
+      "track_id": "proc:7",
+      "track_index": -1,
+      "track_length_m": 1063.46924,
+      "track_checkpoints": 106,
+      "track_half_width": 6.25,
+      "track_hash": "1b0a4d09711dbbc6"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Nope"
+      ],
+      "ok": true,
+      "error": "UNKNOWN_TRACK",
+      "message": "UNKNOWN_TRACK: unknown track 'Nope' (catalog: 0=Track_A, 1=Track_B, 2=Track_C, 3=Track_D; or proc:<seed>) (fatal)"
+    },
+    {
+      "flags": [
+        "-trackIndex",
+        "9"
+      ],
+      "ok": true,
+      "error": "UNKNOWN_TRACK",
+      "message": "UNKNOWN_TRACK: -trackIndex 9 is out of range (catalog has 4 tracks: 0=Track_A, 1=Track_B, 2=Track_C, 3=Track_D) (fatal)"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Track_B",
+        "-trackIndex",
+        "2"
+      ],
+      "ok": true,
+      "error": "UNKNOWN_TRACK",
+      "message": "UNKNOWN_TRACK: conflicting -trackName Track_B (index 1) and -trackIndex 2 (Track_C) (fatal)"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "proc:7",
+        "-trackIndex",
+        "0"
+      ],
+      "ok": true,
+      "error": "UNKNOWN_TRACK",
+      "message": "UNKNOWN_TRACK: conflicting -trackName proc:7 (index -1) and -trackIndex 0 (Track_A) (fatal)"
+    },
+    {
+      "flags": [
+        "-trackIndex",
+        "x"
+      ],
+      "ok": true,
+      "error": "UNKNOWN_TRACK",
+      "message": "UNKNOWN_TRACK: -trackIndex needs a non-negative integer, got 'x' (fatal)"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Track_D"
+      ],
+      "expected_track_id": "Track_D",
+      "strict": true,
+      "ok": true,
+      "reply": "READY"
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Track_D"
+      ],
+      "expected_track_id": "Track_A",
+      "strict": true,
+      "ok": true,
+      "reply": {
+        "code": "TRACK_MISMATCH",
+        "message": "track_id Track_D (expected Track_A), env_config_hash dbce4b7f772fc7b4",
+        "fatal": true
+      }
+    },
+    {
+      "flags": [
+        "-trackName",
+        "Track_D"
+      ],
+      "expected_track_id": "Track_A",
+      "strict": false,
+      "ok": true,
+      "reply": "READY"
+    }
+  ]
+}

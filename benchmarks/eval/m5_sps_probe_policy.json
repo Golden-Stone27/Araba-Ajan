@@ -1,0 +1,96 @@
+{
+  "p99_limit_ms": 50.0,
+  "rows": [
+    {
+      "agents": 16,
+      "procs": 2,
+      "total_agents": 32,
+      "policy": true,
+      "vector_steps": 5396,
+      "seconds": 15.0,
+      "sps": 11511.0,
+      "step_latency_p50_ms": 2.269,
+      "step_latency_p99_ms": 3.037,
+      "step_latency_max_ms": 8.112,
+      "launch_s": 0.5
+    },
+    {
+      "agents": 16,
+      "procs": 3,
+      "total_agents": 48,
+      "policy": true,
+      "vector_steps": 5194,
+      "seconds": 15.0,
+      "sps": 16617.9,
+      "step_latency_p50_ms": 2.352,
+      "step_latency_p99_ms": 3.112,
+      "step_latency_max_ms": 4.391,
+      "launch_s": 0.5
+    },
+    {
+      "agents": 16,
+      "procs": 4,
+      "total_agents": 64,
+      "policy": true,
+      "vector_steps": 4606,
+      "seconds": 15.0,
+      "sps": 19649.4,
+      "step_latency_p50_ms": 2.634,
+      "step_latency_p99_ms": 3.381,
+      "step_latency_max_ms": 9.17,
+      "launch_s": 0.6
+    },
+    {
+      "agents": 32,
+      "procs": 2,
+      "total_agents": 64,
+      "policy": true,
+      "vector_steps": 3343,
+      "seconds": 15.0,
+      "sps": 14259.3,
+      "step_latency_p50_ms": 3.866,
+      "step_latency_p99_ms": 4.781,
+      "step_latency_max_ms": 8.615,
+      "launch_s": 0.5
+    },
+    {
+      "agents": 32,
+      "procs": 3,
+      "total_agents": 96,
+      "policy": true,
+      "vector_steps": 3018,
+      "seconds": 15.0,
+      "sps": 19308.9,
+      "step_latency_p50_ms": 4.136,
+      "step_latency_p99_ms": 5.79,
+      "step_latency_max_ms": 7.495,
+      "launch_s": 0.5
+    },
+    {
+      "agents": 32,
+      "procs": 4,
+      "total_agents": 128,
+      "policy": true,
+      "vector_steps": 2779,
+      "seconds": 15.01,
+      "sps": 23706.0,
+      "step_latency_p50_ms": 4.524,
+      "step_latency_p99_ms": 5.806,
+      "step_latency_max_ms": 6.521,
+      "launch_s": 0.6
+    }
+  ],
+  "selected": {
+    "agents": 32,
+    "procs": 4,
+    "total_agents": 128,
+    "policy": true,
+    "vector_steps": 2779,
+    "seconds": 15.01,
+    "sps": 23706.0,
+    "step_latency_p50_ms": 4.524,
+    "step_latency_p99_ms": 5.806,
+    "step_latency_max_ms": 6.521,
+    "launch_s": 0.6
+  }
+}

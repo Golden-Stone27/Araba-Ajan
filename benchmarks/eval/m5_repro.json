@@ -1,0 +1,32 @@
+{
+  "config": "ppo_parity.yaml",
+  "seed": 1,
+  "updates": 2,
+  "per_update": [
+    {
+      "update": 1,
+      "compared_keys": 42,
+      "different": [],
+      "policy_loss": -0.002256209005524094,
+      "value_loss": 0.010240147379226983,
+      "approx_kl": 0.0013071525298679867,
+      "sps": [
+        13571.373996306873,
+        14797.740252144304
+      ]
+    },
+    {
+      "update": 2,
+      "compared_keys": 42,
+      "different": [],
+      "policy_loss": -0.0032048873195890336,
+      "value_loss": 0.005658097472041846,
+      "approx_kl": 0.002100831223651767,
+      "sps": [
+        13439.218803407517,
+        15153.192262604813
+      ]
+    }
+  ],
+  "identical": true
+}

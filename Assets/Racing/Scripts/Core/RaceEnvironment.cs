@@ -44,9 +44,12 @@ namespace Racing.Core
                 Initialize(trackDefinition, vehicleConfig, simConfig, numAgents, seed, startMode, rewardConfig);
         }
 
-        /// <summary>Initializes with the serialized configs/materials but runtime agent count, seed and start mode.</summary>
-        public void InitializeFromSerialized(int agents, long initialSeed, StartMode mode) =>
-            Initialize(trackDefinition, vehicleConfig, simConfig, agents, initialSeed, mode, rewardConfig);
+        /// <summary>
+        /// Initializes with the serialized configs/materials but runtime agent count, seed and start mode.
+        /// trackOverride (M6 bridge -trackName) replaces the serialized track; null keeps it.
+        /// </summary>
+        public void InitializeFromSerialized(int agents, long initialSeed, StartMode mode, TrackDefinition trackOverride = null) =>
+            Initialize(trackOverride != null ? trackOverride : trackDefinition, vehicleConfig, simConfig, agents, initialSeed, mode, rewardConfig);
 
         public static RaceEnvironment Create(TrackDefinition track, VehicleConfig vehicle, SimConfig sim, int agents, long seed, StartMode mode,
                                              RewardConfig reward = null)

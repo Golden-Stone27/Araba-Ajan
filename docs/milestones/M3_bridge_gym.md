@@ -28,14 +28,14 @@
 
 | Tip | Yön | Payload |
 |---|---|---|
-| `0x0001` HELLO | U→P | JSON: `{protocol, env, unity, build_id, num_agents, obs_dim:26, act_dim:2, obs_layout_hash, env_config_hash, fixed_dt, decision_period, max_episode_decisions, info_struct:"RACE_INFO_V1"}` |
-| `0x0002` CONFIG | P→U | JSON: `{expected_obs_layout_hash, expected_env_config_hash, strict:true}` |
+| `0x0001` HELLO | U→P | JSON: `{protocol, env, unity, build_id, num_agents, obs_dim:26, act_dim:2, obs_layout_hash, env_config_hash, fixed_dt, decision_period, max_episode_decisions, info_struct:"RACE_INFO_V1"}`. M6 sona `track_id, track_index, track_length_m, track_checkpoints, track_half_width, track_hash` alanlarını ekler (C0.20). |
+| `0x0002` CONFIG | P→U | JSON: `{expected_obs_layout_hash, expected_env_config_hash, strict:true}`. M6: isteğe bağlı `expected_track_id`. |
 | `0x0003` READY | U→P | JSON: `{ok:true}` veya ERROR |
 | `0x0010` RESET | P→U | `<qII`: seed i64, start_mode u32, max_laps u32 (0 = sınırsız). Bir sonraki RESET'e kadar kalıcıdır; oto-resetler de bu değerleri kullanır. |
 | `0x0011` STEP | P→U | `f32[N·2]` |
 | `0x0020` STATE | U→P | RESET ve STEP yanıtı (aşağıda) |
 | `0x0030` CLOSE | P→U | boş. Unity `Application.Quit(0)` çağırır. |
-| `0x00FF` ERROR | ↔ | JSON: `{code, message, fatal}`. Kodlar: `BAD_MAGIC`, `BAD_VERSION`, `HASH_MISMATCH`, `BAD_ACTION`, `BAD_LENGTH`, `UNEXPECTED_MSG` |
+| `0x00FF` ERROR | ↔ | JSON: `{code, message, fatal}`. Kodlar: `BAD_MAGIC`, `BAD_VERSION`, `HASH_MISMATCH`, `BAD_ACTION`, `BAD_LENGTH`, `UNEXPECTED_MSG`; M6: `UNKNOWN_TRACK` (HELLO yerine), `TRACK_MISMATCH` |
 
 **STATE payload (N ajan, O = 26):**
 
