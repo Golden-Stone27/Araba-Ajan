@@ -320,3 +320,11 @@ Aşamalar arası teslimler:
 - **Eğitim telemetrisi M2 ile aynı tanımlar:** `Race/CompletionRate` = truncation ile biten episode oranı, `Race/Laps3Rate` = laps ≥ 3; `decisions_to_first_3lap` / `decisions_to_95pct` bu iki eğrinin (güncelleme başına ≈ 20k karar penceresi) ilk eşik geçişidir.
 - **Çalıştırma:** `python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --seed S --run-dir ../runs/m5/parity_sS` (`--resume` ile devam). Çıktılar `runs/` altında (gitignore); değerlendirilen `best.pt` kopyaları `benchmarks/models/custom_ppo_s{S}.pt`.
 - **Sonuç ve rapor:** `benchmarks/M5_FINAL.md` (kullanıcı kararıyla `REPORT.md` yerine; önceki aşama raporlarıyla aynı adlandırma). Özel PPO `best.pt` T = **39.18 s** (39.18 / 38.68 / 40.50), completion 1.00 × 3; ML-Agents köprü üzerinden 41.28 / 41.22 / 41.08 (T_ref 41.22). Son checkpoint (10M) T = 42.66 s ve 1M anlık görüntüsü T = 43.10 s raporda ayrı sütunlarda. `racing_rl` 0.5.0.
+
+## C0.20 M6 çoklu pist notları (devam ediyor)
+
+- **Değişmez:** Track_A (Benchmark) M5 ile bit düzeyinde aynıdır. `TrackFingerprint.Geometry` = `f6930a41d26c9e30`, `TrackFingerprint.Physical` = `4ee36c524bd1cf90` (`TrackAGoldenTests`). `env_config_hash` `90240ee2b1a58b5b` değişmez.
+- **Hash kuralı:** `TrackDefinition`'a M6'da eklenen alanlar kanonik JSON'a yalnızca varsayılan dışı değer aldıklarında yazılır. `profile` ve `notes` alanları meta veridir, hash'e girmez.
+- **Katalog:** `Assets/Racing/Config/TrackCatalog.asset`. 0. indeks her zaman Track_A'dır. Yeni pistler yalnızca sona eklenir; yayımlanmış indeksler değişmez. Kimlikler ASCII ve benzersizdir (Ordinal). Menü: `Racing/Tracks/Setup Track Catalog (M6)`, `Racing/Tracks/Report Tracks (M6)`.
+- **Evrensel pist kuralları:** `TrackValidator.CheckProfile`. 600 ≤ L ≤ 1600 m, R_min ≥ 12 m, öz-ayrım > W + 4, |koordinat| < 500, 10 ≤ W ≤ 14 m, toplam dönüş ±360° ± 5°. Profil kuralları `docs/milestones/M6_multitrack.md` dosyasındadır. Benchmark profili M1 ölçütleridir (`Report.Passed`).
+- **`TrackLayout`:** Düzlük ve yay zinciri. Başlangıç (0, 0), yön +x, pozitif açı sola döner. Zincir tam ±360° dönmelidir. Kapanma açığı iki flex düzlükle (2×2 çözüm) kapatılır, kalan artık yay uzunluğuna dağıtılır. Kontrol noktaları sınırlayıcı kutuya göre ortalanır ve santimetreye yuvarlanır. Ölçülen R_min tasarım yarıçapının ≈ 0.93 katıdır (spline geçiş aşımı).

@@ -3,11 +3,28 @@ using UnityEngine;
 
 namespace Racing.Core
 {
-    /// <summary>Track source data: closed centripetal Catmull-Rom through control points (x, z).</summary>
+    /// <summary>Validator character profile (M6). Metadata only: not part of env_config_hash.</summary>
+    public enum TrackProfile
+    {
+        Benchmark = 0,
+        Technical = 1,
+        Speedway = 2,
+        Elevation = 3,
+        Procedural = 4
+    }
+
+    /// <summary>
+    /// Track source data: closed centripetal Catmull-Rom through control points (x, z).
+    /// Hash rule (C0.20): fields added after the M2 Env Freeze enter the canonical JSON only when they differ
+    /// from their defaults, so Track_A keeps its frozen env_config_hash.
+    /// </summary>
     [CreateAssetMenu(menuName = "Racing/Track Definition", fileName = "TrackDefinition")]
     public sealed class TrackDefinition : ScriptableObject, IHashableConfig
     {
         public string trackId = "Track_A";
+        [Tooltip("Validator character profile; metadata, not hashed.")]
+        public TrackProfile profile = TrackProfile.Benchmark;
+        [TextArea] public string notes;
         public Vector2[] controlPoints = TrackPresets.TrackA;
         public float width = 12f;
         public float wallHeight = 1.5f;
