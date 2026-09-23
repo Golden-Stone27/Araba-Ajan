@@ -1,6 +1,6 @@
 # M6: Çoklu Pist ve Usulü Pist Üretimi
 
-**Durum:** Adım 1 (`09145ed`), Adım 2 (`4395397`) ve Adım 3 (`77fe15f`; Track_D: kot, MeshStrip, uzatılmış duvar collider'ları) tamamlandı. Adım 4 tamamlandı: `-trackName`/`-trackIndex`, HELLO pist alanları, CONFIG `expected_track_id`, `UNKNOWN_TRACK`/`TRACK_MISMATCH`, katalog bağlı sahneler ve yeni build. EditMode 121/121, PlayMode 20/20. Gerçek build ile Track_A regresyonu bit düzeyinde aynı; Track_D süreçler arası determinizm doğrulandı (C0.20 "Köprü"). Sırada Adım 5 (Python) var.
+**Durum:** Adım 1 (`09145ed`), Adım 2 (`4395397`) ve Adım 3 (`77fe15f`; Track_D: kot, MeshStrip, uzatılmış duvar collider'ları) tamamlandı. Adım 4 tamamlandı: `-trackName`/`-trackIndex`, HELLO pist alanları, CONFIG `expected_track_id`, `UNKNOWN_TRACK`/`TRACK_MISMATCH`, katalog bağlı sahneler ve yeni build. EditMode 121/121, PlayMode 20/20. Gerçek build ile Track_A regresyonu bit düzeyinde aynı; Track_D süreçler arası determinizm doğrulandı (C0.20 "Köprü"). Adım 5 tamamlandı: `track_catalog.json` + export menüsü, `UnityVecEnv(track=)`, `MultiUnityVecEnv(tracks=)`, `--track` bayrakları, checkpoint `extra.tracks`, testler (EditMode 123/123, PlayMode 22/22, pytest mock + gerçek build) ve sıfır atış raporu [`benchmarks/M6_TRACKS.md`](../../benchmarks/M6_TRACKS.md). **M6 tamamlandı.**
 
 > **Bağımlılıklar:** M1–M5 (commit `fddea58`). Sözleşme: [`../contracts.md`](../contracts.md) C0.20.
 > **Amaç:** Ajanın genelleme yeteneğini ölçmek ve artırmak için birden çok pisti (elle tasarlanmış ve tohumlu usulü) aynı ortamda, **Benchmark pistini (Track_A) ve C0.10 protokolünü bozmadan** çalıştırmak.
@@ -52,18 +52,18 @@
 
 ## DoD
 
-- [x] EditMode (121/121; CLI ve HELLO/CONFIG: `BridgeTrackTests`):
+- [x] EditMode (123/123; CLI ve HELLO/CONFIG: `BridgeTrackTests`; katalog JSON'u: `TrackCatalogExportTests`):
   - Track_A altın testleri ve `EnvConfigHash_MatchesFrozenValue`
   - Katalogdaki her pist evrensel ve profil kurallarını geçer
   - Pist başına hash dondurulur
   - `proc:<seed>` tekrarlanabilirdir
   - CLI ayrıştırması ve HELLO alanları doğrulanır
-- [x] PlayMode (20/20), her pist için:
+- [x] PlayMode (22/22), her pist için (usulü: `proc:0`, `proc:1`, `proc:7`, `proc:1000`):
   - PurePursuit duvara değmeden 3 tur tamamlar
   - Aynı tohumla iki taze ortam bit düzeyinde aynı yörüngeyi verir (düz pistler: A `DeterminismTests`; B, C ve `proc:7` `MultiTrackPlayTests`). Track_D için aynı ortamda `RebuildAgents` ile RESET tekrarlanabilirliği ve taze süreçler arası eşitlik aranır (C0.20 determinizm bulgusu).
   - Track_D'de, 50 m içinde duvar varken hiçbir ışın 1.0 okumaz
-- [ ] Python: mock ile pytest (`--track`, çoklu pist, uyuşmazlık hataları) ve gerçek build ile pist başına duman testi.
+- [x] Python: mock ile pytest (`--track`, çoklu pist, uyuşmazlık hataları; `tests/test_m6_tracks.py`) ve gerçek build ile pist başına duman testi (`tests/test_unity_tracks.py`, `-m unity`).
 - [x] Track_D: aynı build ve aynı tohumla iki taze süreç aynı STATE akışını üretir (4. adım; `m6_bridge_check.py determinism`, `benchmarks/eval/m6_track_determinism.json`).
 - [x] Track_A regresyonu (yukarıdaki değerler, tur tur aynı; metrikler ve izler bit düzeyinde aynı, `benchmarks/eval/m6_track_a_regression.json`).
-- [ ] M5 `best.pt` ile yeni pistlerde sıfır atış raporu.
-- [ ] contracts C0.20 güncel.
+- [x] M5 `best.pt` ile yeni pistlerde sıfır atış raporu ([`benchmarks/M6_TRACKS.md`](../../benchmarks/M6_TRACKS.md); ML-Agents ONNX modelleri de dahil).
+- [x] contracts C0.20 güncel ("Python (Adım 5)" ve "Sıfır atış (Adım 5)").

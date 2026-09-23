@@ -3,31 +3,54 @@
 from __future__ import annotations
 
 import os
+import warnings
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 
 import gymnasium
 import numpy as np
 from gymnasium.vector.utils import batch_space
 
-from .protocol import FROZEN_ENV_CONFIG_HASH
-from .vec_env import UnityVecEnv
+from .tracks import BENCHMARK_ID, composite_hash, resolve_track
+from .vec_env import AUTO, UnityVecEnv
 
 
 class MultiUnityVecEnv(gymnasium.vector.VectorEnv):
-    """Agent j of process k is env index k·N + j. Process k is seeded with seed + k·N (distinct spawn streams)."""
+    """
+    Agent j of process k is env index k·N + j. Process k is seeded with seed + k·N (distinct spawn streams).
+
+    tracks (M6): process k runs tracks[k % len(tracks)] for its whole life (C0.20: no track change on RESET) and is
+    checked against that track's own catalog hash. track_ids lists each process's track, env_hashes maps every
+    distinct track id to its HELLO env_config_hash and env_config_hash is their composite (tracks.composite_hash; the
+    plain hash for a single track). tracks=None is the M5 setup (Track_A everywhere, no track flag).
+    """
 
     metadata = {"autoreset_mode": gymnasium.vector.AutoresetMode.SAME_STEP}
 
-    def __init__(self, exe_path: str | os.PathLike, num_processes: int = 2, num_agents: int = 16, base_port: int = 6005,
-                 expected_env_hash: str | None = FROZEN_ENV_CONFIG_HASH, log_dir: str | os.PathLike = "runs/unity_logs",
-                 step_timeout_s: float | None = None, launch_timeout_s: float = 180.0, **kwargs):
+    def __init__(self, exe_path: str | os.PathLike | None, num_processes: int = 2, num_agents: int = 16,
+                 base_port: int = 6005, expected_env_hash: str | None = AUTO, log_dir: str | os.PathLike = "runs/unity_logs",
+                 step_timeout_s: float | None = None, launch_timeout_s: float = 180.0, *,
+                 tracks: Sequence[str] | None = None, **kwargs):
         ports = [base_port + 25 * k for k in range(num_processes)]  # bind_server scans +20; keep ranges disjoint
+        per_proc: list[str | None] = [None] * num_processes
+        if tracks:
+            ids = [resolve_track(t).id for t in tracks]  # unknown names fail before any process starts
+            if len(ids) > num_processes:
+                raise ValueError(f"{len(ids)} tracks need at least as many processes (got {num_processes}); "
+                                 "the track is fixed per process")
+            if len(set(ids)) > 1 and expected_env_hash not in (AUTO, None):
+                raise ValueError("expected_env_hash names one environment; with several tracks every process is "
+                                 "checked against its own catalog hash (leave it AUTO)")
+            if num_processes % len(ids):
+                warnings.warn(f"{num_processes} processes over {len(ids)} tracks: unequal agent share per track")
+            per_proc = [ids[k % len(ids)] for k in range(num_processes)]
 
-        def make(port: int) -> UnityVecEnv:
-            return UnityVecEnv(exe_path, num_agents, port, expected_env_hash, log_dir, step_timeout_s, launch_timeout_s, **kwargs)
+        def make(port: int, track: str | None) -> UnityVecEnv:
+            return UnityVecEnv(exe_path, num_agents, port, expected_env_hash, log_dir, step_timeout_s, launch_timeout_s,
+                               track=track, **kwargs)
 
         with ThreadPoolExecutor(max_workers=num_processes) as pool:
-            futures = [pool.submit(make, p) for p in ports]
+            futures = [pool.submit(make, p, t) for p, t in zip(ports, per_proc)]
             envs, error = [], None
             for f in futures:
                 try:
@@ -40,6 +63,10 @@ class MultiUnityVecEnv(gymnasium.vector.VectorEnv):
             raise error
 
         self.envs = envs
+        self.track_ids = [e.track_info["track_id"] if e.track_info else BENCHMARK_ID for e in envs]
+        self.env_hashes: dict[str, str] = {}
+        for tid, e in zip(self.track_ids, envs):
+            self.env_hashes.setdefault(tid, e.hello["env_config_hash"])
         self.num_agents = num_agents
         self.num_envs = sum(e.num_envs for e in envs)
         self.single_observation_space = envs[0].single_observation_space
@@ -52,6 +79,10 @@ class MultiUnityVecEnv(gymnasium.vector.VectorEnv):
             self._slices.append(slice(start, start + e.num_envs))
             start += e.num_envs
         self.closed = False
+
+    @property
+    def env_config_hash(self) -> str:
+        return composite_hash(self.env_hashes)
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)

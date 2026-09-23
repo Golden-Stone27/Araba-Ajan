@@ -37,7 +37,9 @@ namespace Racing.Tests
         [TestCase("Track_C")]
         [TestCase("Track_D")]
         [TestCase("proc:0")]
+        [TestCase("proc:1")]
         [TestCase("proc:7")]
+        [TestCase("proc:1000")]
         public void PurePursuit_Completes3Laps_WithoutWallContact(string track)
         {
             _env = CreateEnv(track, 1, 1000, StartMode.EvalGrid);

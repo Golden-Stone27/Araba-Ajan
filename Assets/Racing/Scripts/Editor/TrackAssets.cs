@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Text;
 using Racing.Core;
 using UnityEditor;
@@ -6,7 +9,7 @@ using UnityEngine;
 
 namespace Racing.Editor
 {
-    /// <summary>M6 track tooling: catalog asset (index 0 = Track_A, contracts C0.20) and track reports.</summary>
+    /// <summary>M6 track tooling: catalog asset (index 0 = Track_A, contracts C0.20), track reports and the Python catalog export.</summary>
     public static class TrackAssets
     {
         const string Root = "Assets/Racing";
@@ -14,6 +17,15 @@ namespace Racing.Editor
         public const string TrackBPath = Root + "/Config/TrackDefinition_B.asset";
         public const string TrackCPath = Root + "/Config/TrackDefinition_C.asset";
         public const string TrackDPath = Root + "/Config/TrackDefinition_D.asset";
+
+        /// <summary>Python's copy of the catalog (racing_rl.bridge.tracks), relative to the project root.</summary>
+        public const string CatalogJsonRelPath = "python/racing_rl/bridge/track_catalog.json";
+        public const string CatalogJsonSchema = "race-track-catalog/v1";
+
+        /// <summary>Procedural seeds whose hashes are frozen in C0.20; exported as procedural_refs.</summary>
+        public static readonly long[] ProceduralRefSeeds = { 0, 1, 7, 1000 };
+
+        public static string CatalogJsonPath => Path.GetFullPath(Path.Combine(Application.dataPath, "..", CatalogJsonRelPath));
 
         /// <summary>Catalog order is append-only: published indices never move.</summary>
         public static readonly string[] CatalogOrder = { ProjectSetup.TrackDefinitionPath, TrackBPath, TrackCPath, TrackDPath };
@@ -112,6 +124,82 @@ namespace Racing.Editor
             }
             Debug.Log("[Race] tracks:\n" + sb);
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Python's view of the catalog (M6 step 5): per track the HELLO track fields, the frozen env_config_hash and
+        /// track_hash, plus the C0.20 procedural reference seeds (index -1). Deterministic text (InvariantCulture, "R"
+        /// floats, LF); EditMode ExportedJson_IsUpToDate compares it with the committed file.
+        /// </summary>
+        public static string BuildCatalogJson()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<TrackCatalog>(CatalogPath);
+            var sim = AssetDatabase.LoadAssetAtPath<SimConfig>(ProjectSetup.SimConfigPath);
+            var vehicle = AssetDatabase.LoadAssetAtPath<VehicleConfig>(ProjectSetup.VehicleConfigPath);
+            var reward = AssetDatabase.LoadAssetAtPath<RewardConfig>(MlaTools.RewardConfigPath);
+            if (catalog == null || sim == null || vehicle == null || reward == null)
+                throw new InvalidOperationException("catalog export: missing TrackCatalog, SimConfig, VehicleConfig or RewardConfig asset");
+
+            var c = CultureInfo.InvariantCulture;
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema\": \"").Append(CatalogJsonSchema).Append("\",\n");
+            sb.Append("  \"generated_by\": \"Racing/Tracks/Export Track Catalog (M6)\",\n");
+            sb.Append("  \"obs_layout_hash\": \"").Append(ObservationSpec.LayoutHash).Append("\",\n");
+            sb.Append("  \"procedural_generator_version\": ").Append(ProceduralTrackGenerator.Version.ToString(c)).Append(",\n");
+            sb.Append("  \"tracks\": [\n");
+            for (int i = 0; i < catalog.Count; i++)
+            {
+                TrackDefinition def = catalog.Get(i);
+                AppendEntry(sb, def, i, def.name, sim, vehicle, reward);
+                sb.Append(i + 1 < catalog.Count ? ",\n" : "\n");
+            }
+            sb.Append("  ],\n");
+            sb.Append("  \"procedural_refs\": [\n");
+            for (int i = 0; i < ProceduralRefSeeds.Length; i++)
+            {
+                ProceduralTrackGenerator.Result r = ProceduralTrackGenerator.Generate(ProceduralRefSeeds[i]);
+                try
+                {
+                    AppendEntry(sb, r.Definition, -1, null, sim, vehicle, reward);
+                }
+                finally
+                {
+                    UnityEngine.Object.DestroyImmediate(r.Definition);
+                }
+                sb.Append(i + 1 < ProceduralRefSeeds.Length ? ",\n" : "\n");
+            }
+            sb.Append("  ]\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        static void AppendEntry(StringBuilder sb, TrackDefinition def, int index, string asset, SimConfig sim, VehicleConfig vehicle,
+                                RewardConfig reward)
+        {
+            var c = CultureInfo.InvariantCulture;
+            var g = new TrackGeometry(def);
+            sb.Append("    {\"index\": ").Append(index.ToString(c));
+            sb.Append(", \"id\": \"").Append(def.trackId).Append('"');
+            if (asset != null) sb.Append(", \"asset\": \"").Append(asset).Append('"');
+            sb.Append(", \"profile\": \"").Append(def.profile.ToString()).Append('"');
+            sb.Append(", \"width\": ").Append(def.width.ToString("R", c));
+            sb.Append(", \"length_m\": ").Append(g.Length.ToString("R", c));
+            sb.Append(", \"checkpoints\": ").Append(g.CheckpointCount.ToString(c));
+            sb.Append(", \"half_width\": ").Append(g.HalfWidth.ToString("R", c));
+            sb.Append(", \"elevation\": ").Append(def.HasElevation ? "true" : "false");
+            sb.Append(", \"env_config_hash\": \"").Append(RaceEnvironment.ComputeEnvConfigHash(sim, vehicle, reward, def)).Append('"');
+            sb.Append(", \"track_hash\": \"").Append(ConfigHash.Compute(def)).Append("\"}");
+        }
+
+        /// <summary>Writes python/racing_rl/bridge/track_catalog.json (UTF-8 without BOM). Editor-only: the player build is unaffected.</summary>
+        [MenuItem("Racing/Tracks/Export Track Catalog (M6)")]
+        public static string ExportCatalogJson()
+        {
+            string json = BuildCatalogJson();
+            File.WriteAllText(CatalogJsonPath, json, new UTF8Encoding(false));
+            Debug.Log("[Race] track catalog exported: " + CatalogJsonRelPath);
+            return json;
         }
     }
 }

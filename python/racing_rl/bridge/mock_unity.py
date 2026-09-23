@@ -34,14 +34,16 @@ class MockUnity:
                  fixed_dt: float = 0.02, max_episode_decisions: int = 3000, env_config_hash: str = FROZEN_ENV_CONFIG_HASH,
                  obs_layout_hash: str | None = None, desync_at_step: int | None = None, hang_at_step: int | None = None,
                  hang_s: float = 5.0, crash_at_step: int | None = None, track_id: str = "mock_circle",
-                 track_index: int = -1):
+                 track_index: int = -1, track_fields: bool = True, track_hash: str | None = None):
         self.host, self.port, self.n, self.k, self.dt = host, port, num_agents, decision_period, fixed_dt
         self.max_dec = max_episode_decisions
         self.env_hash = env_config_hash
         self.obs_hash = obs_layout_hash or layout_hash()
-        # HELLO track fields (M6); the kinematics stay the circle whatever the id says.
-        self.track_id, self.track_index = track_id, track_index
-        self.track_hash = hashlib.sha256(f"{track_id}|{RADIUS}|{HALF_WIDTH}".encode()).hexdigest()[:16]
+        # HELLO track fields (M6); the kinematics stay the circle whatever the id says. track_fields=False mimics a
+        # pre-M6 build. The received CONFIG is kept in self.config for the tests.
+        self.track_id, self.track_index, self.track_fields = track_id, track_index, track_fields
+        self.config: dict | None = None
+        self.track_hash = track_hash or hashlib.sha256(f"{track_id}|{RADIUS}|{HALF_WIDTH}".encode()).hexdigest()[:16]
         self.desync_at, self.hang_at, self.hang_s, self.crash_at = desync_at_step, hang_at_step, hang_s, crash_at_step
         self.steps = 0
         self.requests = 0
@@ -225,14 +227,15 @@ class MockUnity:
             hello = {"protocol": PROTOCOL, "env": "mock_circle", "unity": "mock", "build_id": "mock", "num_agents": self.n,
                      "obs_dim": OBS_DIM, "act_dim": ACT_DIM, "obs_layout_hash": self.obs_hash,
                      "env_config_hash": self.env_hash, "fixed_dt": self.dt, "decision_period": self.k,
-                     "max_episode_decisions": self.max_dec, "info_struct": INFO_STRUCT,
-                     "track_id": self.track_id, "track_index": self.track_index, "track_length_m": LENGTH,
-                     "track_checkpoints": CHECKPOINTS, "track_half_width": HALF_WIDTH, "track_hash": self.track_hash}
+                     "max_episode_decisions": self.max_dec, "info_struct": INFO_STRUCT}
+            if self.track_fields:
+                hello.update(track_id=self.track_id, track_index=self.track_index, track_length_m=LENGTH,
+                             track_checkpoints=CHECKPOINTS, track_half_width=HALF_WIDTH, track_hash=self.track_hash)
             _send(sock, MSG_HELLO, 0, json.dumps(hello).encode())
             t, seq, payload = _recv(sock)
             if t != MSG_CONFIG:
                 return
-            cfg = json.loads(payload)
+            cfg = self.config = json.loads(payload)
             # Same order as BridgeProtocol.CheckConfig: the track id first, then the hashes.
             code = None
             if cfg.get("expected_track_id") and cfg["expected_track_id"] != self.track_id:

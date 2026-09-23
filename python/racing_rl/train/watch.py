@@ -12,6 +12,12 @@ requests as fit its 50 ms frame budget and the cars would run many times faster 
 
 Default policy: benchmarks/models/custom_ppo_s2.pt (best custom PPO, flying lap 38.68 s). EvalGrid, 3 laps,
 deterministic μ; agents auto-reset after the race and keep driving. The Editor renders roughly once per decision.
+
+--track (M6): the Editor cannot take command-line flags, so first type the same id into the scene's
+BridgeDriver.trackOverride field (catalog id or proc:<seed>); --track then expects that track (CONFIG
+expected_track_id and its catalog hash) and refuses any other one:
+
+    python -m racing_rl.train.watch --track Track_D
 """
 
 from __future__ import annotations
@@ -36,16 +42,19 @@ def main() -> None:
     ap.add_argument("--laps", type=int, default=3)
     ap.add_argument("--speed", type=float, default=1.0, help="sim time / wall time (0 = unthrottled)")
     ap.add_argument("--wait", type=float, default=300.0, help="seconds to wait for Play")
+    ap.add_argument("--track", help="track set in BridgeDriver.trackOverride (catalog id or proc:<seed>)")
     a = ap.parse_args()
 
     policy, _, model = load_policy(a.policy)
-    print(f"{model} loaded. Listening on 127.0.0.1:{a.port}: press Play in Race_Watch.unity (or Race_Bridge.unity) now "
-          f"(timeout {a.wait:.0f} s)...", flush=True)
-    env = UnityVecEnv(None, port=a.port, launch_timeout_s=a.wait)
+    where = f" with BridgeDriver.trackOverride = {a.track}" if a.track else ""
+    print(f"{model} loaded. Listening on 127.0.0.1:{a.port}: press Play in Race_Watch.unity (or Race_Bridge.unity){where} "
+          f"now (timeout {a.wait:.0f} s)...", flush=True)
+    env = UnityVecEnv(None, port=a.port, launch_timeout_s=a.wait, track=a.track)
     try:
         dt = env.hello["fixed_dt"] * env.hello["decision_period"]
         period = dt / a.speed if a.speed > 0 else 0.0
-        print(f"Connected: {env.num_envs} agents, {dt:.2f} s/decision. Camera follows agent 0. Ctrl+C to stop.",
+        track = f", track {env.track_info['track_id']}" if env.track_info else ""
+        print(f"Connected: {env.num_envs} agents{track}, {dt:.2f} s/decision. Camera follows agent 0. Ctrl+C to stop.",
               flush=True)
         obs, _ = env.reset(seed=a.seed, options={"start_mode": int(StartMode.EVAL_GRID), "max_laps": a.laps})
         best = float("inf")

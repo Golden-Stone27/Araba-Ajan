@@ -480,4 +480,95 @@ namespace Racing.Tests
             }
         }
     }
+
+    /// <summary>
+    /// M6 step 5: python/racing_rl/bridge/track_catalog.json is Python's copy of the catalog (expected hashes per track) and
+    /// must match the assets (menu Racing/Tracks/Export Track Catalog (M6)).
+    /// </summary>
+    public class TrackCatalogExportTests
+    {
+        [System.Serializable]
+        class Entry
+        {
+            public int index;
+            public string id;
+            public string profile;
+            public float width;
+            public float length_m;
+            public int checkpoints;
+            public float half_width;
+            public bool elevation;
+            public string env_config_hash;
+            public string track_hash;
+        }
+
+        [System.Serializable]
+        class Doc
+        {
+            public string schema;
+            public string obs_layout_hash;
+            public int procedural_generator_version;
+            public Entry[] tracks;
+            public Entry[] procedural_refs;
+        }
+
+        static string ReadExported()
+        {
+            string path = Racing.Editor.TrackAssets.CatalogJsonPath;
+            Assert.IsTrue(System.IO.File.Exists(path), Racing.Editor.TrackAssets.CatalogJsonRelPath + " (menu Racing/Tracks/Export Track Catalog (M6))");
+            return System.IO.File.ReadAllText(path).Replace("\r\n", "\n"); // git autocrlf may check it out with CRLF
+        }
+
+        [Test]
+        public void ExportedJson_IsUpToDate()
+        {
+            Assert.AreEqual(Racing.Editor.TrackAssets.BuildCatalogJson(), ReadExported(),
+                "stale track_catalog.json: run Racing/Tracks/Export Track Catalog (M6)");
+        }
+
+        [Test]
+        public void ExportedJson_MatchesFrozenValues()
+        {
+            Doc doc = JsonUtility.FromJson<Doc>(ReadExported());
+            Assert.AreEqual(Racing.Editor.TrackAssets.CatalogJsonSchema, doc.schema);
+            Assert.AreEqual("b40ca79bdba1c2c2", doc.obs_layout_hash);
+            Assert.AreEqual(ProceduralTrackGenerator.Version, doc.procedural_generator_version);
+
+            // contracts C0.20: env_config_hash (TrackFreezeTests) and track_hash (BridgeTrackTests)
+            string[,] tracks =
+            {
+                { "Track_A", "Benchmark", "90240ee2b1a58b5b", "0f2fbf3481a1a24f" },
+                { "Track_B", "Technical", "038a104393cbfb72", "6ce4f5d0b0d07eda" },
+                { "Track_C", "Speedway", "0e099647315ed638", "ff0ea58517167d6f" },
+                { "Track_D", "Elevation", "dbce4b7f772fc7b4", "04f6036ec025016a" },
+            };
+            Assert.GreaterOrEqual(doc.tracks.Length, 4, "catalog is append-only");
+            for (int i = 0; i < 4; i++)
+            {
+                Entry e = doc.tracks[i];
+                Assert.AreEqual(i, e.index);
+                Assert.AreEqual(tracks[i, 0], e.id);
+                Assert.AreEqual(tracks[i, 1], e.profile, e.id);
+                Assert.AreEqual(tracks[i, 2], e.env_config_hash, e.id);
+                Assert.AreEqual(tracks[i, 3], e.track_hash, e.id);
+                Assert.AreEqual(e.width / 2f, e.half_width, e.id);
+                Assert.AreEqual(i == 3, e.elevation, e.id);
+            }
+
+            string[,] procs =
+            {
+                { "proc:0", "00724614a3c71752" }, { "proc:1", "860ce2361684922d" },
+                { "proc:7", "59966c9f08fc1027" }, { "proc:1000", "7b4353dd8647e3d3" },
+            };
+            Assert.AreEqual(procs.GetLength(0), doc.procedural_refs.Length);
+            for (int i = 0; i < procs.GetLength(0); i++)
+            {
+                Entry e = doc.procedural_refs[i];
+                Assert.AreEqual(-1, e.index);
+                Assert.AreEqual(procs[i, 0], e.id);
+                Assert.AreEqual("Procedural", e.profile, e.id);
+                Assert.AreEqual(procs[i, 1], e.env_config_hash, e.id);
+            }
+        }
+    }
 }

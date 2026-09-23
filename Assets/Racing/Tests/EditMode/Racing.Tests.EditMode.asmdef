@@ -4,6 +4,7 @@
     "references": [
         "Racing.Core",
         "Racing.Bridge",
+        "Racing.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

@@ -1,0 +1,18 @@
+{
+  "schema": "race-track-catalog/v1",
+  "generated_by": "Racing/Tracks/Export Track Catalog (M6)",
+  "obs_layout_hash": "b40ca79bdba1c2c2",
+  "procedural_generator_version": 1,
+  "tracks": [
+    {"index": 0, "id": "Track_A", "asset": "TrackDefinition_A", "profile": "Benchmark", "width": 12, "length_m": 1144.08984, "checkpoints": 114, "half_width": 6, "elevation": false, "env_config_hash": "90240ee2b1a58b5b", "track_hash": "0f2fbf3481a1a24f"},
+    {"index": 1, "id": "Track_B", "asset": "TrackDefinition_B", "profile": "Technical", "width": 11, "length_m": 1114.82642, "checkpoints": 111, "half_width": 5.5, "elevation": false, "env_config_hash": "038a104393cbfb72", "track_hash": "6ce4f5d0b0d07eda"},
+    {"index": 2, "id": "Track_C", "asset": "TrackDefinition_C", "profile": "Speedway", "width": 13, "length_m": 1262.51855, "checkpoints": 126, "half_width": 6.5, "elevation": false, "env_config_hash": "0e099647315ed638", "track_hash": "ff0ea58517167d6f"},
+    {"index": 3, "id": "Track_D", "asset": "TrackDefinition_D", "profile": "Elevation", "width": 12, "length_m": 1094.44836, "checkpoints": 109, "half_width": 6, "elevation": true, "env_config_hash": "dbce4b7f772fc7b4", "track_hash": "04f6036ec025016a"}
+  ],
+  "procedural_refs": [
+    {"index": -1, "id": "proc:0", "profile": "Procedural", "width": 11.5, "length_m": 1169.16138, "checkpoints": 116, "half_width": 5.75, "elevation": false, "env_config_hash": "00724614a3c71752", "track_hash": "339b4a35e85cdaac"},
+    {"index": -1, "id": "proc:1", "profile": "Procedural", "width": 12, "length_m": 1267.453, "checkpoints": 126, "half_width": 6, "elevation": false, "env_config_hash": "860ce2361684922d", "track_hash": "6866590e189cfce1"},
+    {"index": -1, "id": "proc:7", "profile": "Procedural", "width": 12.5, "length_m": 1063.46924, "checkpoints": 106, "half_width": 6.25, "elevation": false, "env_config_hash": "59966c9f08fc1027", "track_hash": "1b0a4d09711dbbc6"},
+    {"index": -1, "id": "proc:1000", "profile": "Procedural", "width": 12.5, "length_m": 971.732239, "checkpoints": 97, "half_width": 6.25, "elevation": false, "env_config_hash": "7b4353dd8647e3d3", "track_hash": "0f240fc0b895ad87"}
+  ]
+}
