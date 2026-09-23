@@ -1,6 +1,6 @@
 # M6: Çoklu Pist ve Usulü Pist Üretimi
 
-**Durum:** Adım 1 tamamlandı (`09145ed`). Adım 2 tamamlandı: Track_B, Track_C ve `ProceduralTrackGenerator` v1 (EditMode 67/67, PlayMode 16/16).
+**Durum:** Adım 1 (`09145ed`) ve Adım 2 (`4395397`) tamamlandı. Adım 3 tamamlandı: Track_D (kot, MeshStrip, uzatılmış duvar collider'ları), EditMode 74/74, PlayMode 19/19.
 
 > **Bağımlılıklar:** M1–M5 (commit `fddea58`). Sözleşme: [`../contracts.md`](../contracts.md) C0.20.
 > **Amaç:** Ajanın genelleme yeteneğini ölçmek ve artırmak için birden çok pisti (elle tasarlanmış ve tohumlu usulü) aynı ortamda, **Benchmark pistini (Track_A) ve C0.10 protokolünü bozmadan** çalıştırmak.
@@ -60,9 +60,10 @@
   - CLI ayrıştırması ve HELLO alanları doğrulanır
 - [ ] PlayMode, her pist için:
   - PurePursuit duvara değmeden 3 tur tamamlar
-  - Aynı tohumla iki taze ortam bit düzeyinde aynı yörüngeyi verir
+  - Aynı tohumla iki taze ortam bit düzeyinde aynı yörüngeyi verir (düz pistler). Track_D için aynı ortamda `RebuildAgents` ile RESET tekrarlanabilirliği ve taze süreçler arası eşitlik aranır (C0.20 determinizm bulgusu).
   - Track_D'de, 50 m içinde duvar varken hiçbir ışın 1.0 okumaz
 - [ ] Python: mock ile pytest (`--track`, çoklu pist, uyuşmazlık hataları) ve gerçek build ile pist başına duman testi.
+- [ ] Track_D: aynı build ve aynı tohumla iki taze süreç aynı STATE akışını üretir (4. adım).
 - [ ] Track_A regresyonu (yukarıdaki değerler, tur tur aynı).
 - [ ] M5 `best.pt` ile yeni pistlerde sıfır atış raporu.
 - [ ] contracts C0.20 güncel.

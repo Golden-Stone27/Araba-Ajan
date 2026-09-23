@@ -7,6 +7,9 @@ namespace Racing.Core
     /// Builds the physical track from a TrackDefinition: one ground box (Road layer), a chain of
     /// 1 m thick wall BoxColliders per side (Wall layer, collider-only) and visual meshes (no colliders).
     /// No trigger colliders are created (C0.4).
+    /// M6 (C0.20): RoadColliderMode.MeshStrip adds a MeshCollider road strip that follows the elevation (Road layer,
+    /// under the walls) and drops the ground box below it; wall colliders can extend invisibly below/above the road
+    /// so the horizontal ray sensor keeps seeing them on grades. Defaults build exactly the M1 track.
     /// </summary>
     public sealed class TrackRuntime : MonoBehaviour
     {
@@ -20,7 +23,8 @@ namespace Racing.Core
             for (int i = transform.childCount - 1; i >= 0; i--) DestroyImmediate(transform.GetChild(i).gameObject);
             Geometry = new TrackGeometry(def);
 
-            BuildGround(ground ?? MakeMaterial(new Color(0.25f, 0.45f, 0.22f)));
+            BuildGround(ground ?? MakeMaterial(new Color(0.25f, 0.45f, 0.22f)), def.roadCollider == RoadColliderMode.MeshStrip);
+            if (def.roadCollider == RoadColliderMode.MeshStrip) BuildRoadCollider(def);
             BuildRoadMesh(road ?? MakeMaterial(new Color(0.18f, 0.18f, 0.2f)));
             var wallMat = wall ?? MakeMaterial(new Color(0.8f, 0.15f, 0.15f));
             float offset = Geometry.HalfWidth + def.wallThickness * 0.5f;
@@ -30,7 +34,8 @@ namespace Racing.Core
             Physics.SyncTransforms();
         }
 
-        void BuildGround(Material mat)
+        /// <summary>GroundBox mode: the ground cube's top (y = 0) is the road. MeshStrip mode: it sits 0.1 m lower (visual only).</summary>
+        void BuildGround(Material mat, bool belowStrip)
         {
             float extent = 0f;
             for (int k = 0; k < Geometry.SampleCount; k++)
@@ -43,7 +48,7 @@ namespace Racing.Core
             go.layer = RacingLayers.Road;
             go.transform.SetParent(transform, false);
             float size = 2f * extent + 200f;
-            go.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+            go.transform.localPosition = new Vector3(0f, belowStrip ? -0.6f : -0.5f, 0f);
             go.transform.localScale = new Vector3(size, 1f, size);
             go.GetComponent<Renderer>().sharedMaterial = mat;
             go.isStatic = true;
@@ -73,6 +78,34 @@ namespace Racing.Core
             MakeMeshObject("RoadVisual", verts, uvs, tris, mat);
         }
 
+        /// <summary>Road-layer MeshCollider strip, half-width W/2 + wallThickness + margin, flat cross-section, up-facing.</summary>
+        void BuildRoadCollider(TrackDefinition def)
+        {
+            int n = Geometry.SampleCount;
+            float half = Geometry.HalfWidth + def.wallThickness + def.roadColliderMargin;
+            var verts = new Vector3[2 * (n + 1)];
+            var tris = new int[6 * n];
+            for (int k = 0; k <= n; k++)
+            {
+                Vector3 p = Geometry.SamplePoint(k), r = Geometry.SampleRight(k) * half;
+                verts[2 * k] = p - r;
+                verts[2 * k + 1] = p + r;
+            }
+            for (int k = 0; k < n; k++)
+            {
+                int a = 2 * k, t = 6 * k;
+                tris[t] = a; tris[t + 1] = a + 2; tris[t + 2] = a + 1;
+                tris[t + 3] = a + 1; tris[t + 4] = a + 2; tris[t + 5] = a + 3;
+            }
+            var mesh = new Mesh { name = "RoadCollider", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            mesh.vertices = verts;
+            mesh.triangles = tris;
+            mesh.RecalculateBounds();
+            var go = new GameObject("RoadCollider") { layer = RacingLayers.Road, isStatic = true };
+            go.transform.SetParent(transform, false);
+            go.AddComponent<MeshCollider>().sharedMesh = mesh;
+        }
+
         void BuildWallSide(string name, float offset, TrackDefinition def, Material mat)
         {
             var root = new GameObject(name);
@@ -96,10 +129,13 @@ namespace Racing.Core
                 go.layer = RacingLayers.Wall;
                 go.isStatic = true;
                 go.transform.SetParent(root.transform, false);
-                go.transform.SetPositionAndRotation((a + b) * 0.5f + Vector3.up * (def.wallHeight * 0.5f),
+                // collider spans [road − extraBelow, road + wallHeight + extraAbove]; the defaults give the M1 box exactly
+                float colliderHeight = def.wallHeight + def.wallColliderExtraAbove + def.wallColliderExtraBelow;
+                float centreY = (def.wallHeight + def.wallColliderExtraAbove - def.wallColliderExtraBelow) * 0.5f;
+                go.transform.SetPositionAndRotation((a + b) * 0.5f + Vector3.up * centreY,
                     Quaternion.LookRotation(d / len, Vector3.up));
                 var box = go.AddComponent<BoxCollider>();
-                box.size = new Vector3(def.wallThickness, def.wallHeight, len * 1.1f);
+                box.size = new Vector3(def.wallThickness, colliderHeight, len * 1.1f);
                 WallColliderCount++;
             }
 

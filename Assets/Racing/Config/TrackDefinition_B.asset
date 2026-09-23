@@ -212,3 +212,8 @@ MonoBehaviour:
   checkpointSpacing: 10
   sampleSpacing: 1
   catmullAlpha: 0.5
+  elevation: []
+  wallColliderExtraBelow: 0
+  wallColliderExtraAbove: 0
+  roadCollider: 0
+  roadColliderMargin: 3

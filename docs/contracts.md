@@ -335,10 +335,11 @@ Aşamalar arası teslimler:
 | 0 | Track_A | Benchmark | 12 | 1144.1 | 114 | `90240ee2b1a58b5b` | `f6930a41d26c9e30` | `4ee36c524bd1cf90` |
 | 1 | Track_B | Technical | 11 | 1114.8 | 111 | `038a104393cbfb72` | `1badf7937c4d3373` | `e571cd02540992c9` |
 | 2 | Track_C | Speedway | 13 | 1262.5 | 126 | `0e099647315ed638` | `73a2aed396375311` | `783476a6f82becb7` |
+| 3 | Track_D | Elevation | 12 | 1094.4 | 109 | `dbce4b7f772fc7b4` | `bfa24bc57d5515dd` | `9705cfe460a64ac1` |
 
-  - B ve C, `TrackLayouts.TechnicalB/SpeedwayC` düzenlerinden `Racing/Tracks/Bake Track Assets (M6)` menüsüyle bake edilir. `BakedAssets_MatchTheirLayouts` testi asset ile layout'un senkron kaldığını denetler.
+  - B, C ve D, `TrackLayouts.TechnicalB/SpeedwayC/HillD` düzenlerinden `Racing/Tracks/Bake Track Assets (M6)` menüsüyle bake edilir. `BakedAssets_MatchTheirLayouts` testi asset ile layout'un senkron kaldığını denetler.
   - Diğer alanlar (duvar 1.5 × 1 m, segment 2 m, kapı aralığı 10 m, örnek aralığı 1 m, α 0.5) Track_A ile aynıdır.
-  - PurePursuit referans turları: B 67.08 / 65.02 / 65.00 s, C 44.14 / 40.28 / 40.26 s.
+  - PurePursuit referans turları: B 67.08 / 65.02 / 65.00 s, C 44.14 / 40.28 / 40.26 s, D 53.96 / 51.86 / 51.86 s.
 - **Usulü pistler `proc:<seed>`:**
   - Kaynak: `ProceduralTrackGenerator` v1. Tohum negatif olmayan bir ondalık int64'tür (`TryParseName`); `trackId` = `proc:<seed>`; katalog indeksi −1'dir.
   - PCG32 akışı `0x70726f63` ("proc"). Her aday için:
@@ -352,3 +353,28 @@ Aşamalar arası teslimler:
   - Üretici değişirse `Version` artırılır ve bu tablo güncellenir.
   - 0..99 tohumlarının yüzde 47'si saat yönündedir; PurePursuit 0..19 tohumlarının hepsinde temiz tur tamamlar.
   - **Sınırlama (v1):** Uzun düzlük yoktur; en uzun düzlük 36–149 m arasındadır. Yüksek hız genellemesi için Track_C kullanılır.
+- **Kot ve eğim (Track_D, `TrackDefinition` M6 alanları):**
+  - **Profil:** `elevation` alanı, `ElevationKey(u = s/L, y)` anahtarlarından oluşan periyodik bir kot profilidir. İki anahtar arasında y = y₀ + (y₁ − y₀)(1 − cos πt)/2 kullanılır; eğim anahtarlarda 0 ve C1 süreklidir. Track_D: 150 m'ye kadar düz, 480 m'de +10 m (≈%4.8), 600 m'ye kadar plato, 960 m'de 0 (≈%4.4), sonra düz.
+  - **Hash:** Yeni alanlar yalnızca varsayılan dışı değer aldıklarında hash'e yazılır: `track.elevation` (anahtarların hash'i), `track.wallColliderExtraBelow/Above`, `track.roadCollider` ve `track.roadColliderMargin`. Düz pistlerin kanonik JSON'u değişmez.
+  - **Geometri:**
+    - s yatay (XZ) yay uzunluğudur. Örnek noktaları y = `HeightAt(s/L)` taşır.
+    - Tangent 3B'dir (eğim boyunca): ödül v·t̂ yol boyunca ölçülür ve kapı düzlemi 3B tangente diktir.
+    - Right vektörü, yarıçap, izdüşüm (`Project`) ve öz-ayrım yatay düzlemde hesaplanır.
+    - `y ≡ 0` iken float işlemleri M5 ile bit düzeyinde aynıdır (Track_A altın testleri).
+  - **Collider'lar:**
+    - `RoadColliderMode.MeshStrip`: yarı genişliği W/2 + duvar kalınlığı + 3 m olan, kotu izleyen, yukarı bakan bir MeshCollider (Road katmanı). Zemin küpü 0.1 m aşağı iner.
+    - Duvar collider'ları görünmez biçimde yolun 10 m altına ve üstüne uzatılır; görsel duvar 1.5 m kalır.
+    - Evrensel kural: Kotlu bir pist MeshStrip kullanmalıdır. Uzatma alt tarafta ≥ eğim·50 + 1 m olmalı, üst uç ise ışın yüksekliği + eğim·50 + 1 m'yi geçmelidir. En dik eğim ≤ %6, y ≥ 0.
+    - Elevation profili ayrıca kot aralığı ≥ 6 m ve en dik eğim ≥ %3 ister.
+  - **Işın kanıtı (`TrackD_Rays_SeeEveryWallWithin50m_OnlyWithTheExtension`):** Referans, yatay ışının duvar iç yüzlerine (merkez çizgisi ± W/2) olan 2B kesişim mesafesidir. Karşılaştırma bir PurePursuit turu boyunca yapıldı.
+    - Uzatılmış duvarlar: 50 m içinde duvar olan 7696 ışında 0 kaçırma, en büyük sapma 0.21 m.
+    - M1 yüksekliğindeki duvarlar: 469 kaçırma (%6.1).
+    - Gözlem sözleşmesi (C0.6) değişmez.
+  - **Determinizm bulgusu (Track_D):** Aynı süreçte arka arkaya kurulan iki ortam, eğimli zeminde bit düzeyinde aynı değildir.
+    - **Desen:** Sonuç, süreçte daha önce kaç kez statik pist collider'ı kurulduğuna bağlıdır ve 4 koşu periyotlu bir A A B B desenidir.
+    - **Elenen nedenler:** Desen worker thread sayısından bağımsızdır (0 worker ile aynı). MeshCollider yerine BoxCollider şeridi kullanıldığında da görülür. Tekerlek temas verileri ayrışma adımında aynıdır ve gövde teması yoktur.
+    - **Düz pistler etkilenmez:** Düz pistlerde (A, B, C, düz MeshStrip dahil) desen görülmez.
+    - **Köprü için geçerli garantiler:** Köprü, pisti süreç başına bir kez kurar.
+      - Taze süreçler aynı geçmişle başladığı için birbirinin aynısıdır.
+      - Aynı ortamda `RebuildAgents` ile yapılan RESET bit düzeyinde tekrarlanabilir (`TrackD_RebuildAgents_IsBitwiseReproducible`: 3 koşu × 52 800 float aynı).
+      - Süreçler arası eşitlik 4. adımda gerçek build ile ayrıca doğrulanacak.

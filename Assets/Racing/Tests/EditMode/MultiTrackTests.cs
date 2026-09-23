@@ -229,6 +229,7 @@ namespace Racing.Tests
         [TestCase(0, "Track_A", "90240ee2b1a58b5b", "f6930a41d26c9e30", "4ee36c524bd1cf90")]
         [TestCase(1, "Track_B", "038a104393cbfb72", "1badf7937c4d3373", "e571cd02540992c9")]
         [TestCase(2, "Track_C", "0e099647315ed638", "73a2aed396375311", "783476a6f82becb7")]
+        [TestCase(3, "Track_D", "dbce4b7f772fc7b4", "bfa24bc57d5515dd", "9705cfe460a64ac1")]
         public void CatalogTrack_IsFrozen(int index, string id, string env, string geom, string phys)
         {
             TrackDefinition def = Load<TrackCatalog>(TrackCatalogTests.CatalogPath).Get(index);
@@ -262,6 +263,7 @@ namespace Racing.Tests
             {
                 ("Assets/Racing/Config/TrackDefinition_B.asset", TrackLayouts.TechnicalB),
                 ("Assets/Racing/Config/TrackDefinition_C.asset", TrackLayouts.SpeedwayC),
+                ("Assets/Racing/Config/TrackDefinition_D.asset", TrackLayouts.HillD),
             };
             foreach (var (path, layout) in baked)
             {
@@ -336,6 +338,146 @@ namespace Racing.Tests
             Assert.AreEqual(-1, index);
             Assert.AreEqual("proc:7", def.trackId);
             Object.DestroyImmediate(def);
+        }
+    }
+    /// <summary>M6 step 3: elevation profile, sloped geometry and the collider rules of Track_D (C0.20).</summary>
+    public class ElevationTests
+    {
+        const string TrackDPath = "Assets/Racing/Config/TrackDefinition_D.asset";
+
+        static TrackDefinition LoadD()
+        {
+            var d = AssetDatabase.LoadAssetAtPath<TrackDefinition>(TrackDPath);
+            Assert.IsNotNull(d, TrackDPath);
+            return d;
+        }
+
+        static TrackDefinition Profile(params ElevationKey[] keys)
+        {
+            var def = TrackDefinition.CreateDefault();
+            def.elevation = keys;
+            return def;
+        }
+
+        [Test]
+        public void HeightAt_HitsKeys_UsesCosineSpans_AndWraps()
+        {
+            TrackDefinition def = Profile(new ElevationKey(0.1f, 0f), new ElevationKey(0.5f, 10f), new ElevationKey(0.7f, 4f));
+            Assert.AreEqual(0.0, def.HeightAt(0.1), 1e-6);
+            Assert.AreEqual(10.0, def.HeightAt(0.5), 1e-6);
+            Assert.AreEqual(4.0, def.HeightAt(0.7), 1e-6);
+            Assert.AreEqual(5.0, def.HeightAt(0.3), 1e-6, "cosine midpoint");
+            Assert.AreEqual(10.0 * 0.5 * (1.0 - System.Math.Cos(System.Math.PI * 0.25)), def.HeightAt(0.2), 1e-6);
+            // wrap span 0.7 -> 1.1 (4 m -> 0 m): midpoint at u = 0.9, and u = 0.0 lies at t = 0.75 of that span
+            Assert.AreEqual(2.0, def.HeightAt(0.9), 1e-6);
+            Assert.AreEqual(def.HeightAt(0.05), def.HeightAt(1.05), 1e-9, "periodic");
+            Assert.AreEqual(4.0 * 0.5 * (1.0 + System.Math.Cos(System.Math.PI * 0.75)), def.HeightAt(0.0), 1e-6);
+            Assert.AreEqual(0.0, TrackDefinition.CreateDefault().HeightAt(0.4), "flat without keys");
+        }
+
+        [Test]
+        public void TrackD_SamplesFollowTheProfile_WithinGradeLimits()
+        {
+            TrackDefinition def = LoadD();
+            var g = new TrackGeometry(def);
+            for (int k = 0; k < g.SampleCount; k++)
+                Assert.AreEqual((float)def.HeightAt(k * (double)g.SampleSpacing / g.Length), g.SamplePoint(k).y, 1e-4f, "sample " + k);
+            TrackValidator.Report r = TrackValidator.Validate(g);
+            TestContext.WriteLine(r.ToString());
+            Assert.AreEqual(0f, r.MinY, 1e-4f);
+            Assert.AreEqual(10f, r.MaxY, 1e-3f);
+            Assert.That(r.MaxGrade, Is.InRange(0.03f, 0.06f));
+            Assert.AreEqual(0f, g.SamplePoint(0).y, "start line is flat");
+            CollectionAssert.IsEmpty(TrackValidator.CheckProfile(def, r));
+        }
+
+        [Test]
+        public void TrackD_SlopedTangents_HorizontalRights_AndHorizontalProjection()
+        {
+            var g = new TrackGeometry(LoadD());
+            float maxTangentY = 0f;
+            for (float s = 3f; s < g.Length; s += 37f)
+            {
+                Vector3 t = g.TangentAt(s), r = g.RightAt(s);
+                maxTangentY = Mathf.Max(maxTangentY, Mathf.Abs(t.y));
+                Assert.AreEqual(1f, t.magnitude, 1e-4f);
+                Assert.AreEqual(0f, r.y, 1e-6f, "right vector is horizontal");
+                Assert.AreEqual(0f, Vector3.Dot(t, r), 1e-4f);
+
+                // a car above the road (any height) projects to the same s / lateral: projection is horizontal
+                Vector3 p = g.PointAt(s) + r * 2.5f;
+                TrackProjection onRoad = g.Project(p, -1), above = g.Project(p + Vector3.up * 3f, -1);
+                Assert.AreEqual(s, onRoad.S, 0.05f, "s at " + s);
+                Assert.AreEqual(2.5f, onRoad.Lateral, 0.05f, "lateral at " + s);
+                Assert.AreEqual(onRoad.S, above.S);
+                Assert.AreEqual(onRoad.Lateral, above.Lateral);
+            }
+            Assert.Greater(maxTangentY, 0.03f, "tangents follow the slope (reward v.t along the road)");
+        }
+
+        [Test]
+        public void TrackD_CanonicalJson_ListsTheM6Fields()
+        {
+            string json = ConfigHash.CanonicalJson(LoadD());
+            foreach (string key in new[] { "track.elevation", "track.roadCollider", "track.roadColliderMargin",
+                                           "track.wallColliderExtraBelow", "track.wallColliderExtraAbove" })
+                StringAssert.Contains("\"" + key + "\"", json);
+        }
+
+        [Test]
+        public void ElevatedTrack_WithoutStripOrWallExtension_FailsTheUniversalRules()
+        {
+            TrackDefinition d = Object.Instantiate(LoadD());
+            try
+            {
+                d.wallColliderExtraBelow = 0f;
+                d.wallColliderExtraAbove = 0f;
+                d.roadCollider = RoadColliderMode.GroundBox;
+                var fails = TrackValidator.CheckProfile(d, TrackValidator.Validate(new TrackGeometry(d)));
+                TestContext.WriteLine(string.Join("\n", fails));
+                Assert.AreEqual(3, fails.Count);
+            }
+            finally
+            {
+                Object.DestroyImmediate(d);
+            }
+        }
+
+        [Test]
+        public void TrackD_Colliders_RoadStripUnderTheWalls_TallWalls()
+        {
+            TrackDefinition def = LoadD();
+            var go = new GameObject("TrackD");
+            try
+            {
+                var rt = go.AddComponent<TrackRuntime>();
+                rt.Build(def);
+                MeshCollider strip = go.GetComponentInChildren<MeshCollider>();
+                Assert.IsNotNull(strip, "MeshStrip road collider");
+                Assert.AreEqual(RacingLayers.Road, strip.gameObject.layer);
+                Assert.IsFalse(strip.convex);
+
+                // every road point is supported by the strip, including under the walls, and the hit faces up
+                TrackGeometry g = rt.Geometry;
+                Physics.SyncTransforms();
+                float reach = g.HalfWidth + def.wallThickness + def.roadColliderMargin - 0.5f;
+                for (float s = 0.5f; s < g.Length; s += 13f)
+                    foreach (float lat in new[] { -reach, 0f, reach })
+                    {
+                        Vector3 p = g.PointAt(s) + g.RightAt(s) * lat;
+                        Assert.IsTrue(strip.Raycast(new Ray(p + Vector3.up * 2f, Vector3.down), out RaycastHit hit, 4f), $"strip at s={s} lat={lat}");
+                        Assert.AreEqual(p.y, hit.point.y, 0.05f);
+                        Assert.Greater(hit.normal.y, 0.99f, "up-facing");
+                    }
+
+                BoxCollider wall = go.transform.Find("WallRight").GetComponentInChildren<BoxCollider>();
+                Assert.AreEqual(RacingLayers.Wall, wall.gameObject.layer);
+                Assert.AreEqual(def.wallHeight + 2f * TrackLayouts.HillWallExtension, wall.size.y, 1e-5f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
         }
     }
 }

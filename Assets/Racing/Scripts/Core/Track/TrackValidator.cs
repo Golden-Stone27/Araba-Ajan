@@ -32,6 +32,8 @@ namespace Racing.Core
             public int HairpinCount, ChicaneCount;
             /// <summary>Signed integral of curvature over the lap (deg): +-360 for a simple closed track.</summary>
             public float TotalTurnDeg;
+            /// <summary>Centreline height range and steepest grade |Δy|/Δs between adjacent samples (M6).</summary>
+            public float MinY, MaxY, MaxGrade;
             public List<Corner> Corners = new List<Corner>();
 
             public bool Passed =>
@@ -43,10 +45,11 @@ namespace Racing.Core
             {
                 var c = CultureInfo.InvariantCulture;
                 return string.Format(c,
-                    "L={0:F1} Rmin={1:F1} straight={2:F1} minSep={3:F1}(>{4:F1}) maxAbs={5:F1} hairpin={6} fast={7} chicane={8} left={9} right={10} corners={11} => {12}",
+                    "L={0:F1} Rmin={1:F1} straight={2:F1} minSep={3:F1}(>{4:F1}) maxAbs={5:F1} hairpin={6} fast={7} chicane={8} left={9} right={10} corners={11} M1={12}",
                     Length, MinRadius, LongestStraight, MinSeparation, RequiredSeparation, MaxAbsCoordinate,
                     HasHairpin, HasFastCorner, HasChicane, HasLeft, HasRight, Corners.Count, Passed ? "PASS" : "FAIL") +
-                    string.Format(c, " | hairpins={0} chicanes={1} turn={2:F1}deg", HairpinCount, ChicaneCount, TotalTurnDeg);
+                    string.Format(c, " | hairpins={0} chicanes={1} turn={2:F1}deg y=[{3:F1},{4:F1}] grade={5:P1}",
+                        HairpinCount, ChicaneCount, TotalTurnDeg, MinY, MaxY, MaxGrade);
             }
         }
 
@@ -55,6 +58,13 @@ namespace Racing.Core
         public const float MinWidth = 10f, MaxWidth = 14f;
         public const float TurnClosureToleranceDeg = 5f;
         public const float ProceduralMaxMinRadius = 40f;
+        public const float MaxGradeLimit = 0.06f;
+        public const float ElevationMinRange = 6f, ElevationMinGrade = 0.03f;
+        /// <summary>
+        /// Ray sensor coverage on grades: over its 50 m range a horizontal ray leaves the road plane by up to
+        /// grade·50 m, so wall colliders must reach at least that far below the road and above the ray height.
+        /// </summary>
+        public static float RequiredWallExtension(float maxGrade) => maxGrade * RaySensor.MaxDistance + 1f;
 
         /// <summary>
         /// Universal safety rules and the definition's character profile. Returns the failed rules (empty = pass).
@@ -75,6 +85,16 @@ namespace Racing.Core
             Need(r.MaxAbsCoordinate < MaxAbsCoordinate, "|coordinate| < 500", r.MaxAbsCoordinate);
             Need(def.width >= MinWidth && def.width <= MaxWidth, "width in [10, 14]", def.width);
             Need(Mathf.Abs(Mathf.Abs(r.TotalTurnDeg) - 360f) <= TurnClosureToleranceDeg, "total turn +-360", r.TotalTurnDeg);
+            Need(r.MinY >= 0f, "road height >= 0 (OutOfBounds is y < -5)", r.MinY);
+            Need(r.MaxGrade <= MaxGradeLimit, "grade <= 6%", r.MaxGrade);
+            if (def.HasElevation)
+            {
+                float need = RequiredWallExtension(r.MaxGrade);
+                Need(def.roadCollider == RoadColliderMode.MeshStrip, "elevated road needs the MeshStrip collider", 0f);
+                Need(def.wallColliderExtraBelow >= need, "wall collider extra below >= grade*50 + 1", def.wallColliderExtraBelow);
+                Need(def.wallHeight + def.wallColliderExtraAbove >= RaySensor.Height + need, "wall collider top >= ray height + grade*50 + 1",
+                     def.wallHeight + def.wallColliderExtraAbove);
+            }
 
             switch (def.profile)
             {
@@ -98,7 +118,9 @@ namespace Racing.Core
                     Need(r.MinRadius <= ProceduralMaxMinRadius, "a corner with R <= 40", r.MinRadius);
                     break;
                 case TrackProfile.Elevation:
-                    break; // Elevation rules: M6 step 3
+                    Need(r.MaxY - r.MinY >= ElevationMinRange, "height range >= 6 m", r.MaxY - r.MinY);
+                    Need(r.MaxGrade >= ElevationMinGrade, "max grade >= 3%", r.MaxGrade);
+                    break;
             }
             return fail;
         }
@@ -119,6 +141,15 @@ namespace Racing.Core
                 r.MaxAbsCoordinate = Mathf.Max(r.MaxAbsCoordinate, Mathf.Max(Mathf.Abs(p.x), Mathf.Abs(p.z)));
             }
             r.TotalTurnDeg = (float)(totalTurn * Mathf.Rad2Deg);
+            r.MinY = float.MaxValue;
+            r.MaxY = float.MinValue;
+            for (int k = 0; k < n; k++)
+            {
+                float y = g.SamplePoint(k).y;
+                r.MinY = Mathf.Min(r.MinY, y);
+                r.MaxY = Mathf.Max(r.MaxY, y);
+                r.MaxGrade = Mathf.Max(r.MaxGrade, Mathf.Abs(g.SamplePoint(k + 1).y - y) / ds);
+            }
 
             // corners: contiguous runs with radius < CornerRadius, starting from a non-corner sample
             int start = 0;
@@ -182,11 +213,14 @@ namespace Racing.Core
             for (int a = 0; a < n; a += 2)
             {
                 Vector3 pa = g.SamplePoint(a);
+                pa.y = 0f; // horizontal separation (no crossings/overpasses; flat tracks unchanged)
                 for (int b = a + 1; b < n; b += 2)
                 {
                     int d = Math.Min(b - a, n - (b - a));
                     if (d <= arcSamples) continue;
-                    float d2 = (g.SamplePoint(b) - pa).sqrMagnitude;
+                    Vector3 pb = g.SamplePoint(b);
+                    pb.y = 0f;
+                    float d2 = (pb - pa).sqrMagnitude;
                     if (d2 < minSep2) minSep2 = d2;
                 }
             }
