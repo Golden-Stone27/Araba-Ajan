@@ -1,0 +1,57 @@
+# --- Unity ---
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Bb]uild/
+/[Bb]uilds/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+crashlytics-build.properties
+/[Aa]ssets/[Ss]treamingAssets/aa*
+.vs/
+.vscode/
+.idea/
+.utmp/
+
+# Test sonuçları
+/TestResults*.xml
+/[Tt]est[Rr]esults/
+
+# --- Python ---
+.venv*/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Eğitim çıktıları ---
+/python/runs/
+/mlagents/results/
+/benchmarks/plots/*.tmp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# ML-Agents editor timers / generated
+/[Aa]ssets/ML-Agents/
+/[Aa]ssets/ML-Agents.meta
