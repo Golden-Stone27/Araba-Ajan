@@ -377,4 +377,21 @@ Aşamalar arası teslimler:
     - **Köprü için geçerli garantiler:** Köprü, pisti süreç başına bir kez kurar.
       - Taze süreçler aynı geçmişle başladığı için birbirinin aynısıdır.
       - Aynı ortamda `RebuildAgents` ile yapılan RESET bit düzeyinde tekrarlanabilir (`TrackD_RebuildAgents_IsBitwiseReproducible`: 3 koşu × 52 800 float aynı).
-      - Süreçler arası eşitlik 4. adımda gerçek build ile ayrıca doğrulanacak.
+      - Süreçler arası eşitlik 4. adımda gerçek build ile doğrulandı (aşağıda, "Köprü").
+- **Köprü (Adım 4):**
+  - **Pist seçimi:** Player argümanları `-trackName <kimlik | asset adı | proc:<seed>>` ve `-trackIndex <i>`. Pist süreç başına bir kez kurulur; RESET pisti değiştirmez.
+    - Öncelik: CLI, sonra `BridgeDriver.trackOverride` (yalnız Editor; string olduğu için `proc:` de alır), en son sahnedeki serileştirilmiş pist. Argüman yoksa M5 yolu aynen çalışır (aynı `TrackDefinition` nesnesi).
+    - Ad çözümlemesi `TrackCatalog.TryResolve` ile yapılır (kimlik, asset adı, `proc:<seed>` → indeks −1). İki bayrak birlikte verilirse aynı katalog girdisini göstermelidir.
+    - Katalog `BridgeDriver.catalog` alanındadır. `Race_Bridge` ve `Race_Watch` sahnelerine `Racing/Tracks/Bind Track Catalog To Bridge Scenes (M6)` menüsüyle bağlanır (sahneler yeniden üretilmez); `SetupBridgeScene` ve `SetupWatchScene` de bağlar.
+  - **Hatalar:** Pist çözümlenemezse ortam kurulmaz. Unity bağlanır, HELLO yerine `ERROR{UNKNOWN_TRACK, fatal}` gönderir ve 2 koduyla çıkar. Kapsam: bilinmeyen ad (Ordinal), aralık dışı indeks, tamsayı olmayan veya değersiz bayrak, bayrak çelişkisi (ayrı kod yok, mesaj açıklar), üretilemeyen `proc:` pisti. Python bunu `RemoteError(code="UNKNOWN_TRACK")` olarak görür.
+  - **HELLO:** M3 alanları aynı sıra ve biçimde kalır. Sona şunlar eklenir: `track_id`, `track_index` (proc: −1), `track_length_m` (float `R`), `track_checkpoints`, `track_half_width`, `track_hash` (= `ConfigHash.Compute(trackDef)`, yalnız pist parçası). Alanlar yalnız eklendiği için **`PROTOCOL`/`Version` 1 kalır**; M5 Python istemcisi yeni build'le değişmeden çalışır.
+    - Donmuş `track_hash`: A `0f2fbf3481a1a24f`, B `6ce4f5d0b0d07eda`, C `ff0ea58517167d6f`, D `04f6036ec025016a` (`BridgeTrackTests`).
+  - **CONFIG:** İsteğe bağlı `expected_track_id`. Önce pist denetlenir (başka pist hash'i de değiştirdiği için daha açıklayıcıdır): strict modda uyuşmazlık `ERROR{TRACK_MISMATCH, fatal}` verir, strict değilse uyarı yazılır. Sonra M3 hash denetimi (`HASH_MISMATCH`) gelir. JsonUtility'de eksik `strict` false okunur (M3 ile aynı).
+  - **Kod:** `CommandLineArgs.TryParseTrackArgs`, `BridgeDriver.TryResolveTrack`, `BridgeProtocol.{TrackInfo, HelloJson, ConfigMsg, CheckConfig}`, `RaceEnvironment.InitializeFromSerialized(n, seed, mode, trackOverride = null)`. Python: `protocol.ERR_UNKNOWN_TRACK`, `ERR_TRACK_MISMATCH`, `HELLO_TRACK_FIELDS`; `mock_unity` yeni HELLO alanlarını üretir ve `expected_track_id`'yi aynı sırayla denetler.
+  - **Doğrulama (gerçek build, `python/scripts/m6_bridge_check.py`):**
+    - `smoke` (`benchmarks/eval/m6_bridge_smoke.json`): argümansız, `-trackName`/`-trackIndex` ile A–D ve `proc:7` HELLO'ları C0.20 hash'leriyle eşleşir; 5 `UNKNOWN_TRACK` ve 3 `expected_track_id` vakası beklenen yanıtı verir (16/16).
+    - `regress` (`benchmarks/eval/m6_track_a_regression.json`): 6 M5 modeli (özel PPO s1–s3, ML-Agents s1–s3), argümansız ve `-trackName Track_A` ile, özel s1 ayrıca `-trackIndex 0` ile (13 koşu). Tüm per-seed metrikleri ve `benchmarks/eval/traces/*.npz` izlerinin her dizisi bit düzeyinde aynıdır: özel PPO 39.18 / 38.68 / 40.50 s, ML-Agents 41.28 / 41.22 / 41.08 s.
+    - `determinism` (`benchmarks/eval/m6_track_determinism.json`): Her pist (Track_D, kontrol olarak Track_A) ve senaryo için `-trackName` ile 2 taze süreç açılır. Her süreçte 2 kez RESET(1000, TrainRandom) + 1500 STEP koşulur (16 ajan). Karşılaştırma, her STATE'in SHA-256 özetiyle yapılır (obs, ödül, bayraklar, final_obs, RACE_INFO).
+      - Senaryolar: sabit tohumlu aksiyon dizisi (çok duvar teması ve oto-reset: 698 / 714 bitiş) ve M5 `custom_ppo_s1` politikası (deterministik μ; Track_D'de en yüksek 36.9 m/s, pistin 20 diliminin hepsinde 20 m/s üstü).
+      - Sonuç: 1501 STATE'lik akışlar hem süreçler arasında hem süreç içindeki iki RESET arasında bit düzeyinde aynıdır. Böylece Track_D için "taze süreçler aynıdır" garantisi gerçek build ile doğrulanmıştır.
+      - Not: M5 politikası Track_D'de sıfır atışta tur tamamlayamıyor (132 bitiş/koşu), Track_A'da 41 tur. Sıfır atış raporu Adım 5'e aittir.

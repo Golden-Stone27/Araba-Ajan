@@ -17,7 +17,8 @@ namespace Racing.Bridge
     /// Rewards earned by a reset agent while it waits for the block to end belong to its new episode and are
     /// carried into the next STATE, so Σ reward over an episode equals RACE_INFO.ep_return.
     /// Steady-state STEP handling is allocation-free (pre-allocated buffers).
-    /// Args: -bridgePort p (6005), -numAgents N, -bridgeTimingLog path (per-request Unity processing time).
+    /// Args: -bridgePort p (6005), -numAgents N, -bridgeTimingLog path (per-request Unity processing time),
+    /// -trackName id|asset|proc:seed and/or -trackIndex i (M6; the track is fixed for the whole process, contracts C0.20).
     /// </summary>
     [DefaultExecutionOrder(-1000)]
     public sealed class BridgeDriver : MonoBehaviour
@@ -30,8 +31,13 @@ namespace Racing.Bridge
         [SerializeField] int port = DefaultPort;
         [SerializeField] int numAgents = 16;
         [SerializeField] string host = "127.0.0.1";
+        [Tooltip("Tracks selectable with -trackName / -trackIndex (M6).")]
+        [SerializeField] TrackCatalog catalog;
+        [Tooltip("Editor only: track id, asset name or proc:<seed> used when no -trackName/-trackIndex is given. Empty = the environment's track.")]
+        [SerializeField] string trackOverride = "";
 
         BridgeClient _client;
+        int _trackIndex;
         BridgeProtocol.StateLayout _layout;
         int _n, _k;
         float[] _actions, _obs, _finalObs;
@@ -64,7 +70,13 @@ namespace Racing.Bridge
             _timingPath = CommandLineArgs.GetString("-bridgeTimingLog");
 
             if (environment == null) environment = FindAnyObjectByType<RaceEnvironment>();
-            environment.InitializeFromSerialized(numAgents, 0, StartMode.TrainRandom);
+            if (!TryResolveTrack(System.Environment.GetCommandLineArgs(), catalog, Application.isEditor ? trackOverride : null,
+                                 environment.TrackDef, out TrackDefinition track, out _trackIndex, out string trackError))
+            {
+                RejectTrack(trackError);
+                return;
+            }
+            environment.InitializeFromSerialized(numAgents, 0, StartMode.TrainRandom, track);
             Allocate(environment.Agents.Count, environment.Sim.decisionPeriod);
 
             try
@@ -74,6 +86,102 @@ namespace Racing.Bridge
             }
             catch (Exception e) when (e is IOException || e is SocketException)
             {
+                Fail("handshake: " + e.Message);
+            }
+        }
+
+        /// <summary>
+        /// M6 track selection: -trackName / -trackIndex, else editorOverride (a name), else fallback (the scene's track).
+        /// Names resolve through TrackCatalog.TryResolve (id, asset name or proc:&lt;seed&gt;, index -1). Both flags must
+        /// name the same catalog entry. False with an error for unknown names, out-of-range indices and conflicts.
+        /// </summary>
+        public static bool TryResolveTrack(string[] args, TrackCatalog catalog, string editorOverride, TrackDefinition fallback,
+                                           out TrackDefinition track, out int index, out string error)
+        {
+            track = null;
+            index = -1;
+            if (!CommandLineArgs.TryParseTrackArgs(args, out string name, out int flagIndex, out error)) return false;
+            if (name == null && flagIndex < 0 && !string.IsNullOrEmpty(editorOverride)) name = editorOverride;
+
+            if (name == null && flagIndex < 0)
+            {
+                if (fallback == null)
+                {
+                    error = "no track: the environment has no TrackDefinition and no track was selected";
+                    return false;
+                }
+                track = fallback;
+                index = catalog != null ? catalog.IndexOf(fallback.trackId) : -1;
+                return true;
+            }
+            if (catalog == null)
+            {
+                error = "no TrackCatalog bound to BridgeDriver (Racing/Tracks/Bind Track Catalog To Bridge Scenes (M6))";
+                return false;
+            }
+
+            if (flagIndex >= 0 && catalog.Get(flagIndex) == null)
+            {
+                error = string.Format(CultureInfo.InvariantCulture, "{0} {1} is out of range (catalog has {2} tracks: {3})",
+                    CommandLineArgs.TrackIndex, flagIndex, catalog.Count, CatalogIds(catalog));
+                return false;
+            }
+            if (name == null)
+            {
+                track = catalog.Get(flagIndex);
+                index = flagIndex;
+                return true;
+            }
+
+            bool found;
+            try
+            {
+                found = catalog.TryResolve(name, out track, out index);
+            }
+            catch (InvalidOperationException e) // ProceduralTrackGenerator found no valid candidate
+            {
+                error = "track '" + name + "': " + e.Message;
+                return false;
+            }
+            if (!found)
+            {
+                error = "unknown track '" + name + "' (catalog: " + CatalogIds(catalog) + "; or proc:<seed>)";
+                return false;
+            }
+            if (flagIndex >= 0 && index != flagIndex)
+            {
+                error = string.Format(CultureInfo.InvariantCulture, "conflicting {0} {1} (index {2}) and {3} {4} ({5})",
+                    CommandLineArgs.TrackName, name, index, CommandLineArgs.TrackIndex, flagIndex, catalog.Get(flagIndex).trackId);
+                track = null;
+                index = -1;
+                return false;
+            }
+            return true;
+        }
+
+        static string CatalogIds(TrackCatalog catalog)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < catalog.Count; i++)
+            {
+                if (i > 0) sb.Append(", ");
+                sb.Append(i.ToString(CultureInfo.InvariantCulture)).Append('=').Append(catalog.Get(i) != null ? catalog.Get(i).trackId : "null");
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>No environment is built: connect, answer with a fatal UNKNOWN_TRACK instead of HELLO and quit (exit code 2).</summary>
+        void RejectTrack(string message)
+        {
+            _client = new BridgeClient(64 * 1024);
+            try
+            {
+                _client.Connect(host, port);
+                SendError(0, BridgeProtocol.ErrUnknownTrack, message, true);
+            }
+            catch (Exception e) when (e is IOException || e is SocketException)
+            {
+                Debug.LogError($"[Bridge] ERROR {BridgeProtocol.ErrUnknownTrack}: {message}");
                 Fail("handshake: " + e.Message);
             }
         }
@@ -104,26 +212,13 @@ namespace Racing.Bridge
             }
         }
 
-        [Serializable]
-        struct ConfigMsg
-        {
-            public string expected_obs_layout_hash;
-            public string expected_env_config_hash;
-            public bool strict;
-        }
-
         bool Handshake()
         {
             SimConfig sim = environment.Sim;
+            TrackDefinition def = environment.TrackDef;
             string build = string.IsNullOrEmpty(Application.buildGUID) ? "editor" : Application.buildGUID;
-            string hello = string.Format(CultureInfo.InvariantCulture,
-                "{{\"protocol\":{0},\"env\":\"{1}\",\"unity\":\"{2}\",\"build_id\":\"{3}\",\"num_agents\":{4},\"obs_dim\":{5},\"act_dim\":{6}," +
-                "\"obs_layout_hash\":\"{7}\",\"env_config_hash\":\"{8}\",\"fixed_dt\":{9},\"decision_period\":{10},\"max_episode_decisions\":{11}," +
-                "\"info_struct\":\"{12}\"}}",
-                BridgeProtocol.Version, BridgeProtocol.JsonEscape(environment.TrackDef != null ? environment.TrackDef.name : "track"),
-                Application.unityVersion, BridgeProtocol.JsonEscape(build), _n, BridgeProtocol.ObsDim, BridgeProtocol.ActDim,
-                ObservationSpec.LayoutHash, environment.EnvConfigHash, sim.fixedDeltaTime.ToString("R", CultureInfo.InvariantCulture),
-                _k, sim.maxEpisodeDecisions, BridgeProtocol.InfoStruct);
+            string hello = BridgeProtocol.HelloJson(def.name, Application.unityVersion, build, _n, environment.EnvConfigHash,
+                sim.fixedDeltaTime, _k, sim.maxEpisodeDecisions, BridgeProtocol.TrackInfo.From(def, _trackIndex, environment.Track));
             _client.SendJson(BridgeProtocol.MsgHello, 0, hello);
 
             BridgeProtocol.Header h = _client.Receive();
@@ -133,23 +228,20 @@ namespace Racing.Bridge
                 SendError(h.Seq, BridgeProtocol.ErrUnexpectedMsg, "expected CONFIG, got 0x" + h.MsgType.ToString("X4"), true);
                 return false;
             }
-            var cfg = JsonUtility.FromJson<ConfigMsg>(_client.PayloadString(h));
-            bool obsOk = string.IsNullOrEmpty(cfg.expected_obs_layout_hash) || string.Equals(cfg.expected_obs_layout_hash, ObservationSpec.LayoutHash, StringComparison.Ordinal);
-            bool envOk = string.IsNullOrEmpty(cfg.expected_env_config_hash) || string.Equals(cfg.expected_env_config_hash, environment.EnvConfigHash, StringComparison.Ordinal);
-            if (!(obsOk && envOk))
+            var cfg = JsonUtility.FromJson<BridgeProtocol.ConfigMsg>(_client.PayloadString(h));
+            if (!BridgeProtocol.CheckConfig(cfg, ObservationSpec.LayoutHash, environment.EnvConfigHash, def.trackId, out string code, out string msg))
             {
-                string msg = $"obs_layout_hash {ObservationSpec.LayoutHash} (expected {cfg.expected_obs_layout_hash}), " +
-                             $"env_config_hash {environment.EnvConfigHash} (expected {cfg.expected_env_config_hash})";
                 if (cfg.strict)
                 {
-                    SendError(h.Seq, BridgeProtocol.ErrHashMismatch, msg, true);
+                    SendError(h.Seq, code, msg, true);
                     return false;
                 }
-                Debug.LogWarning("[Bridge] hash mismatch (strict=false): " + msg);
+                Debug.LogWarning("[Bridge] " + code + " (strict=false): " + msg);
             }
             _client.SendJson(BridgeProtocol.MsgReady, h.Seq, "{\"ok\":true}");
-            Debug.Log(string.Format(CultureInfo.InvariantCulture, "[Bridge] READY agents={0} K={1} state_bytes={2} env_config_hash={3} obs_layout_hash={4} timing_log={5}",
-                _n, _k, _layout.Size, environment.EnvConfigHash, ObservationSpec.LayoutHash, _timingPath ?? "-"));
+            Debug.Log(string.Format(CultureInfo.InvariantCulture,
+                "[Bridge] READY agents={0} K={1} state_bytes={2} track={3} (index {4}) env_config_hash={5} obs_layout_hash={6} timing_log={7}",
+                _n, _k, _layout.Size, def.trackId, _trackIndex, environment.EnvConfigHash, ObservationSpec.LayoutHash, _timingPath ?? "-"));
             return true;
         }
 

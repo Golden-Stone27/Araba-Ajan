@@ -33,6 +33,16 @@ OBS_DIM = 26
 ACT_DIM = 2
 INFO_STRUCT = "RACE_INFO_V1"
 
+# ERROR codes added in M6 (Racing.Bridge.BridgeProtocol.Err*). UNKNOWN_TRACK arrives instead of HELLO (fatal):
+# -trackName / -trackIndex name no track or disagree. TRACK_MISMATCH: CONFIG expected_track_id != the running track.
+ERR_HASH_MISMATCH = "HASH_MISMATCH"
+ERR_UNKNOWN_TRACK = "UNKNOWN_TRACK"
+ERR_TRACK_MISMATCH = "TRACK_MISMATCH"
+
+# HELLO track fields (M6, appended to the M3 fields; PROTOCOL stays 1). track_index is -1 for proc:<seed> tracks,
+# track_hash is the track part of env_config_hash alone.
+HELLO_TRACK_FIELDS = ("track_id", "track_index", "track_length_m", "track_checkpoints", "track_half_width", "track_hash")
+
 # C0.6 canonical layout string; obs_layout_hash = sha256(utf8)[:16].
 OBS_LAYOUT_V1 = (
     "RACE_OBS_V1|n=26|rays=15,fov=180,max=50,h=0.5|vfwd/50|vlat/50|yaw/3|psi1(sin,cos)@0|psi2(sin,cos)@30"

@@ -208,6 +208,8 @@ MonoBehaviour:
   port: 6005
   numAgents: 16
   host: 127.0.0.1
+  catalog: {fileID: 11400000, guid: e804a1bf03f7ba6409883c00ea54fdf9, type: 2}
+  trackOverride: 
 --- !u!4 &470194368
 Transform:
   m_ObjectHideFlags: 0

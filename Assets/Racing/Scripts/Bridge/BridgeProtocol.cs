@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Globalization;
 using Racing.Core;
 
 namespace Racing.Bridge
@@ -35,6 +36,8 @@ namespace Racing.Bridge
         public const string ErrBadAction = "BAD_ACTION";
         public const string ErrBadLength = "BAD_LENGTH";
         public const string ErrUnexpectedMsg = "UNEXPECTED_MSG";
+        public const string ErrUnknownTrack = "UNKNOWN_TRACK";   // M6: -trackName/-trackIndex unresolvable or conflicting (sent instead of HELLO)
+        public const string ErrTrackMismatch = "TRACK_MISMATCH"; // M6: CONFIG expected_track_id != the running track
 
         public static int FlagPad(int n) => (4 - (2 * n) % 4) % 4;
 
@@ -110,6 +113,85 @@ namespace Racing.Bridge
             WriteFloat(s.Slice(28), t.EpisodeReturn);
             WriteFloat(s.Slice(32), t.PosX);
             WriteFloat(s.Slice(36), t.PosZ);
+        }
+
+        /// <summary>HELLO track fields (M6). Index -1 = procedural track (not in the catalog). Hash = the track part alone.</summary>
+        public readonly struct TrackInfo
+        {
+            public readonly string Id;
+            public readonly int Index;
+            public readonly float LengthM;
+            public readonly int Checkpoints;
+            public readonly float HalfWidth;
+            public readonly string Hash;
+
+            public TrackInfo(string id, int index, float lengthM, int checkpoints, float halfWidth, string hash)
+            {
+                Id = id;
+                Index = index;
+                LengthM = lengthM;
+                Checkpoints = checkpoints;
+                HalfWidth = halfWidth;
+                Hash = hash;
+            }
+
+            public static TrackInfo From(TrackDefinition def, int index, ITrack track) =>
+                new TrackInfo(def.trackId, index, track.Length, track.CheckpointCount, track.HalfWidth, ConfigHash.Compute(def));
+        }
+
+        /// <summary>
+        /// HELLO payload. The M3 fields keep their order and format; the M6 track fields are appended, so PROTOCOL/Version stay 1.
+        /// </summary>
+        public static string HelloJson(string env, string unity, string buildId, int numAgents, string envConfigHash, float fixedDt,
+                                       int decisionPeriod, int maxEpisodeDecisions, in TrackInfo track)
+        {
+            var c = CultureInfo.InvariantCulture;
+            return string.Format(c,
+                "{{\"protocol\":{0},\"env\":\"{1}\",\"unity\":\"{2}\",\"build_id\":\"{3}\",\"num_agents\":{4},\"obs_dim\":{5},\"act_dim\":{6}," +
+                "\"obs_layout_hash\":\"{7}\",\"env_config_hash\":\"{8}\",\"fixed_dt\":{9},\"decision_period\":{10},\"max_episode_decisions\":{11}," +
+                "\"info_struct\":\"{12}\",\"track_id\":\"{13}\",\"track_index\":{14},\"track_length_m\":{15},\"track_checkpoints\":{16}," +
+                "\"track_half_width\":{17},\"track_hash\":\"{18}\"}}",
+                Version, JsonEscape(env), unity, JsonEscape(buildId), numAgents, ObsDim, ActDim,
+                ObservationSpec.LayoutHash, envConfigHash, fixedDt.ToString("R", c),
+                decisionPeriod, maxEpisodeDecisions, InfoStruct, JsonEscape(track.Id), track.Index, track.LengthM.ToString("R", c),
+                track.Checkpoints, track.HalfWidth.ToString("R", c), track.Hash);
+        }
+
+        /// <summary>CONFIG payload (JsonUtility). Empty expectations are not checked; a missing strict reads as false.</summary>
+        [Serializable]
+        public struct ConfigMsg
+        {
+            public string expected_obs_layout_hash;
+            public string expected_env_config_hash;
+            public string expected_track_id;
+            public bool strict;
+        }
+
+        /// <summary>
+        /// False with (code, message) when CONFIG expects something else. The track id is checked first (TRACK_MISMATCH), since
+        /// another track also changes env_config_hash; then the hashes (HASH_MISMATCH).
+        /// </summary>
+        public static bool CheckConfig(in ConfigMsg cfg, string obsLayoutHash, string envConfigHash, string trackId,
+                                       out string code, out string message)
+        {
+            if (!string.IsNullOrEmpty(cfg.expected_track_id) && !string.Equals(cfg.expected_track_id, trackId, StringComparison.Ordinal))
+            {
+                code = ErrTrackMismatch;
+                message = $"track_id {trackId} (expected {cfg.expected_track_id}), env_config_hash {envConfigHash}";
+                return false;
+            }
+            bool obsOk = string.IsNullOrEmpty(cfg.expected_obs_layout_hash) || string.Equals(cfg.expected_obs_layout_hash, obsLayoutHash, StringComparison.Ordinal);
+            bool envOk = string.IsNullOrEmpty(cfg.expected_env_config_hash) || string.Equals(cfg.expected_env_config_hash, envConfigHash, StringComparison.Ordinal);
+            if (!(obsOk && envOk))
+            {
+                code = ErrHashMismatch;
+                message = $"obs_layout_hash {obsLayoutHash} (expected {cfg.expected_obs_layout_hash}), " +
+                          $"env_config_hash {envConfigHash} (expected {cfg.expected_env_config_hash})";
+                return false;
+            }
+            code = null;
+            message = null;
+            return true;
         }
 
         /// <summary>Minimal JSON string escaping for the handshake/error messages (ASCII payloads).</summary>

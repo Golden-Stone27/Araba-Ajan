@@ -234,6 +234,7 @@ namespace Racing.Tests
         /// process, so fresh processes and RESET (TrackD_RebuildAgents_IsBitwiseReproducible) stay deterministic.
         /// </summary>
         [TestCase("Track_B")]
+        [TestCase("Track_C")]
         [TestCase("proc:7")]
         public void SameSeedAndActions_BitwiseIdenticalTrajectories(string track)
         {

@@ -44,6 +44,7 @@ namespace Racing.Editor
             var dso = new SerializedObject(driver);
             dso.FindProperty("environment").objectReferenceValue = env;
             dso.ApplyModifiedPropertiesWithoutUndo();
+            BindTrackCatalog(scene);
 
             var camGo = new GameObject("Main Camera") { tag = "MainCamera" };
             camGo.AddComponent<Camera>().farClipPlane = 2000f;
@@ -80,9 +81,51 @@ namespace Racing.Editor
                 dso.FindProperty("numAgents").intValue = 1;
                 dso.ApplyModifiedPropertiesWithoutUndo();
             }
+            BindTrackCatalog(scene);
             EditorSceneManager.SaveScene(scene);
             EditorSceneManager.CloseScene(scene, true);
             Debug.Log("[Race] watch scene saved: " + WatchScenePath);
+        }
+
+        /// <summary>
+        /// M6: binds TrackCatalog.asset to the BridgeDriver of the existing bridge and watch scenes without rebuilding them
+        /// (-trackName / -trackIndex need it). Scenes that are not open are opened additively and closed again.
+        /// </summary>
+        [MenuItem("Racing/Tracks/Bind Track Catalog To Bridge Scenes (M6)")]
+        public static void BindTrackCatalogToBridgeScenes()
+        {
+            foreach (string path in new[] { BridgeScenePath, WatchScenePath })
+            {
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) == null) continue;
+                Scene scene = SceneManager.GetSceneByPath(path);
+                bool wasOpen = scene.IsValid() && scene.isLoaded;
+                if (!wasOpen) scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+                int n = BindTrackCatalog(scene);
+                EditorSceneManager.SaveScene(scene);
+                if (!wasOpen) EditorSceneManager.CloseScene(scene, true);
+                Debug.Log($"[Race] track catalog bound to {n} BridgeDriver(s) in {path}");
+            }
+        }
+
+        /// <summary>Sets BridgeDriver.catalog on every driver in the scene; returns how many were bound.</summary>
+        static int BindTrackCatalog(Scene scene)
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<TrackCatalog>(TrackAssets.CatalogPath);
+            if (catalog == null)
+            {
+                Debug.LogError("[Race] " + TrackAssets.CatalogPath + " not found (Racing/Tracks/Setup Track Catalog (M6))");
+                return 0;
+            }
+            int n = 0;
+            foreach (GameObject root in scene.GetRootGameObjects())
+            foreach (BridgeDriver driver in root.GetComponentsInChildren<BridgeDriver>(true))
+            {
+                var dso = new SerializedObject(driver);
+                dso.FindProperty("catalog").objectReferenceValue = catalog;
+                dso.ApplyModifiedPropertiesWithoutUndo();
+                n++;
+            }
+            return n;
         }
 
         [MenuItem("Racing/Build Bridge Player (M3)")]

@@ -1,0 +1,279 @@
+{
+  "check": "track_a_regression",
+  "ok": true,
+  "reference": [
+    "benchmarks/custom_ppo.json",
+    "benchmarks/mlagents_bridge.json",
+    "benchmarks/eval/traces/*.npz"
+  ],
+  "runs": [
+    {
+      "policy": "custom",
+      "seed": 1,
+      "variant": "none",
+      "flags": [],
+      "ok": true,
+      "flying_lap_median_s": 39.18000030517578,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "custom",
+      "seed": 1,
+      "variant": "name",
+      "flags": [
+        "-trackName",
+        "Track_A"
+      ],
+      "ok": true,
+      "flying_lap_median_s": 39.18000030517578,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "custom",
+      "seed": 1,
+      "variant": "index",
+      "flags": [
+        "-trackIndex",
+        "0"
+      ],
+      "ok": true,
+      "flying_lap_median_s": 39.18000030517578,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "custom",
+      "seed": 2,
+      "variant": "none",
+      "flags": [],
+      "ok": true,
+      "flying_lap_median_s": 38.68000030517578,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "custom",
+      "seed": 2,
+      "variant": "name",
+      "flags": [
+        "-trackName",
+        "Track_A"
+      ],
+      "ok": true,
+      "flying_lap_median_s": 38.68000030517578,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "custom",
+      "seed": 3,
+      "variant": "none",
+      "flags": [],
+      "ok": true,
+      "flying_lap_median_s": 40.5,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "custom",
+      "seed": 3,
+      "variant": "name",
+      "flags": [
+        "-trackName",
+        "Track_A"
+      ],
+      "ok": true,
+      "flying_lap_median_s": 40.5,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "mlagents",
+      "seed": 1,
+      "variant": "none",
+      "flags": [],
+      "ok": true,
+      "flying_lap_median_s": 41.279998779296875,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "mlagents",
+      "seed": 1,
+      "variant": "name",
+      "flags": [
+        "-trackName",
+        "Track_A"
+      ],
+      "ok": true,
+      "flying_lap_median_s": 41.279998779296875,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "mlagents",
+      "seed": 2,
+      "variant": "none",
+      "flags": [],
+      "ok": true,
+      "flying_lap_median_s": 41.21999740600586,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "mlagents",
+      "seed": 2,
+      "variant": "name",
+      "flags": [
+        "-trackName",
+        "Track_A"
+      ],
+      "ok": true,
+      "flying_lap_median_s": 41.21999740600586,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "mlagents",
+      "seed": 3,
+      "variant": "none",
+      "flags": [],
+      "ok": true,
+      "flying_lap_median_s": 41.07999801635742,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    },
+    {
+      "policy": "mlagents",
+      "seed": 3,
+      "variant": "name",
+      "flags": [
+        "-trackName",
+        "Track_A"
+      ],
+      "ok": true,
+      "flying_lap_median_s": 41.07999801635742,
+      "completion_rate": 1.0,
+      "flying_laps_identical": true,
+      "compared_metrics": 13,
+      "metric_diff": [],
+      "trace_diff": [],
+      "build_id": "ee81723cde19439da2497c9fb946fc4c",
+      "track": [
+        "Track_A",
+        0,
+        "90240ee2b1a58b5b"
+      ]
+    }
+  ]
+}

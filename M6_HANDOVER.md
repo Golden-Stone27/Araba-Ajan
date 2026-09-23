@@ -1,7 +1,7 @@
 # M6 Devir Teslim: Çoklu Pist ve Usulü Pist Üretimi
 
 > **Okuma sırası:** Önce bu dosyayı, sonra [`docs/milestones/M6_multitrack.md`](docs/milestones/M6_multitrack.md) planını ve DoD'yi, en son [`docs/contracts.md`](docs/contracts.md) **C0.20** bölümünü oku. Bağlayıcı sayılar, hash'ler ve kurallar contracts'tadır.
-> **Tarih:** 2026-09-23. **Dal:** `GS`. **Son commit'ler:** Watch sahnesi `d3f2def`, Adım 1 `09145ed`, Adım 2 `4395397`, Adım 3 `77fe15f`.
+> **Tarih:** 2026-09-23. **Dal:** `GS`. **Son commit'ler:** Watch sahnesi `d3f2def`, Adım 1 `09145ed`, Adım 2 `4395397`, Adım 3 `77fe15f`, devir teslim `0f2c6c3`. Adım 4 çalışma ağacında tamamlandı (commit kullanıcı komutuyla atılacak).
 
 ## 1. Çalışma kuralları (kullanıcı tercihleri)
 
@@ -20,9 +20,17 @@
   - Python ortamı `D:\RaceAgent\.venv` (3.10.11, torch 2.14.0+cpu, `pip install -e python` kurulu).
   - Donanım yalnızca CPU.
 
-## 2. Mevcut durum: Adım 1–3 tamam
+## 2. Mevcut durum: Adım 1–4 tamam
 
-**Testler:** EditMode **74/74**, PlayMode **19/19** yeşil (`TestResults/*_summary.txt`).
+**Testler:** EditMode **121/121** (Adım 4 ile +47: `BridgeTrackTests`), PlayMode **20/20** (Track_C taze ortam determinizmi eklendi) yeşil (`TestResults/*_summary.txt`). Python: `pytest` (mock) yeşil, yeni HELLO/CONFIG testleri `tests/test_mock_env.py` içinde.
+
+**Adım 4 özeti (ayrıntı: contracts C0.20 "Köprü"):**
+- `-trackName <kimlik | asset adı | proc:seed>` ve `-trackIndex <i>`; Editor için `BridgeDriver.trackOverride` (string). Çözülemeyen seçim HELLO yerine `UNKNOWN_TRACK` (fatal) döndürür.
+- HELLO'ya pist alanları eklendi (`PROTOCOL` 1 kaldı). CONFIG'e `expected_track_id` eklendi; uyuşmazlık `TRACK_MISMATCH` verir.
+- `Race_Bridge` ve `Race_Watch` sahnelerine katalog bağlandı (sahne başına 2 satırlık diff). Build `Builds/RaceEnv` yeniden alındı; M5 build'inin yedeği `Builds/RaceEnv_M5` (gitignore).
+- Gerçek build doğrulaması `python/scripts/m6_bridge_check.py {smoke,regress,determinism}`. Sonuçlar `benchmarks/eval/m6_*.json` dosyalarında:
+  - Track_A regresyonu 13/13 bit düzeyinde aynı.
+  - Track_D ve Track_A için süreçler arası ve süreç içi (RESET) STATE akışları aynı.
 
 | İndeks | Kimlik | Profil | W | L (m) | Kapı | `env_config_hash` | PurePursuit turları (s) |
 |---|---|---|---|---|---|---|---|
@@ -48,6 +56,9 @@ Geometri ve fiziksel parmak izleri de C0.20 tablosunda ve `TrackFreezeTests` tes
 | `Core/Track/TrackFingerprint.cs` | Bit düzeyinde `Geometry` ve `Physical` parmak izleri. |
 | `Editor/TrackAssets.cs` | Menüler: `Racing/Tracks/Bake Track Assets (M6)`, `Setup Track Catalog (M6)`, `Report Tracks (M6)`. |
 | `Tests/EditMode/MultiTrackTests.cs`, `Tests/PlayMode/MultiTrackPlayTests.cs` | M6 testleri. |
+| `Bridge/CommandLineArgs.cs`, `Bridge/BridgeDriver.cs`, `Bridge/BridgeProtocol.cs` | Adım 4: `TryParseTrackArgs`, `TryResolveTrack`, `RejectTrack` (UNKNOWN_TRACK), `TrackInfo`/`HelloJson`/`ConfigMsg`/`CheckConfig`. |
+| `Editor/BuildScript.cs` | Adım 4: `BindTrackCatalog`, menü `Racing/Tracks/Bind Track Catalog To Bridge Scenes (M6)`. |
+| `Tests/EditMode/BridgeTrackTests.cs` | Adım 4: CLI, çözümleme, HELLO, CONFIG testleri; donmuş `track_hash` değerleri. |
 
 ## 3. Kritik bulgular ve kısıtlar
 
@@ -78,7 +89,7 @@ Geometri ve fiziksel parmak izleri de C0.20 tablosunda ve `TrackFreezeTests` tes
 
 ## 4. Kalan işler
 
-### Adım 4: Köprü (C#), build ve regresyon
+### Adım 4: Köprü (C#), build ve regresyon (TAMAMLANDI; aşağıdaki liste kayıt için duruyor)
 
 1. **`Bridge/CommandLineArgs.cs` ve `Bridge/BridgeDriver.cs`:**
    - `-trackName <id|asset adı|proc:seed>` ve `-trackIndex <i>` argümanları. İkisi çelişirse hata verilir. İkisi de yoksa sahnedeki serileştirilmiş pist kullanılır; bugünkü davranış bayt düzeyinde aynı kalır.
@@ -128,11 +139,12 @@ Adım 4 ve 5 bittikten sonra M6 DoD kutucukları işaretlenir ve C0.20 "devam ed
 
 ## 5. Diğer
 
-- **`python/scripts/watch_ediyor.py`:** Kullanıcının canlı izleme betiği; `best.pt`'yi Editor'deki Race_Bridge sahnesinde gerçek zamanlı sürdürür. Çalıştırma: `cd python` ardından `python scripts/watch_ediyor.py [ckpt]`. Genel sürüm: `python -m racing_rl.train.watch`.
+- **`python/scripts/watch_ediyor.py`:** Kullanıcının canlı izleme betiği; `best.pt`'yi Editor'deki Race_Bridge sahnesinde gerçek zamanlı sürdürür. Çalıştırma: `cd python` ardından `python scripts/watch_ediyor.py [ckpt]`. Genel sürüm: `python -m racing_rl.train.watch`. Editor'de başka pist izlemek için sahnedeki `BridgeDriver.trackOverride` alanına kimlik veya `proc:<seed>` yazılır (`train.watch` Adım 5'teki `--track` bayrağına kadar beklenen hash olarak Track_A'yı kullanır ve başka pisti `ProtocolMismatchError` ile reddeder).
+- **Konsol kodlaması:** Proje yolu ASCII değil ve Python konsolu cp1252. Betik çıktılarında tam yolu yazdırmak `UnicodeEncodeError` verir; yalnız dosya adı yazdırılır.
 - **Çalışma planı hafızası:** Kullanıcı hafıza dosyaları `C:\Users\27ome\.claude\projects\D--Unity-Projects-Araba-Yar----Ajan-\memory\` altında.
 
 ## 6. Yeni ajanın ilk görevi
 
 İlk mesajda aşağıdaki görevi başlat:
 
-> "`M6_HANDOVER.md`, `docs/milestones/M6_multitrack.md` ve `docs/contracts.md` C0.20'yi oku. `git log --oneline -5` ile `77fe15f` commit'ini doğrula. Unity MCP ile EditMode (74) ve PlayMode (19) testlerini çalıştırıp yeşil olduklarını teyit et. Ardından **M6 Adım 4** için dosya bazında kısa bir uygulama planı (CLI, HELLO/CONFIG, sahne/build, Track_A regresyonu, Track_D süreçler arası determinizm) sun ve kullanıcının 'başla' komutunu bekle."
+> "`M6_HANDOVER.md`, `docs/milestones/M6_multitrack.md` ve `docs/contracts.md` C0.20'yi (özellikle 'Köprü') oku. `git log --oneline -5` ile Adım 4 commit'ini doğrula. Unity MCP ile EditMode (121) ve PlayMode (19) testlerini, `python -m pytest` ile Python testlerini çalıştırıp yeşil olduklarını teyit et. Ardından **M6 Adım 5** için dosya bazında kısa bir uygulama planı (`track_catalog.json` + export menüsü, `UnityVecEnv(track=)`, `MultiUnityVecEnv(tracks=)`, `--track` bayrakları, checkpoint `extra.tracks`, mock testleri, sıfır atış raporu) sun ve kullanıcının 'başla' komutunu bekle."
