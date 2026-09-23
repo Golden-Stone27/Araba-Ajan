@@ -226,6 +226,22 @@ namespace Racing.Tests
             Assert.IsFalse(TerminationPolicy.IsTermination(TermReason.None));
         }
 
+        /// <summary>Env Freeze (C0.11, C0.14): any change to Sim/Vehicle/Reward/Track assets or the obs layout breaks this.</summary>
+        [Test]
+        public void EnvConfigHash_MatchesFrozenValue()
+        {
+            T Load<T>(string path) where T : ScriptableObject => UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
+            var sim = Load<SimConfig>("Assets/Racing/Config/SimConfig.asset");
+            var vehicle = Load<VehicleConfig>("Assets/Racing/Config/VehicleConfig.asset");
+            var reward = Load<RewardConfig>("Assets/Racing/Config/RewardConfig.asset");
+            var track = Load<TrackDefinition>("Assets/Racing/Config/TrackDefinition_A.asset");
+            Assert.IsNotNull(sim);
+            Assert.IsNotNull(vehicle);
+            Assert.IsNotNull(reward);
+            Assert.IsNotNull(track);
+            Assert.AreEqual("90240ee2b1a58b5b", RaceEnvironment.ComputeEnvConfigHash(sim, vehicle, reward, track));
+        }
+
         [Test]
         public void RewardConfig_ChangesEnvConfigHash()
         {

@@ -4,6 +4,7 @@
     "references": [
         "Racing.Core",
         "Racing.MLAgents",
+        "Racing.Bridge",
         "Unity.ML-Agents",
         "Unity.InferenceEngine",
         "UnityEditor.TestRunner",

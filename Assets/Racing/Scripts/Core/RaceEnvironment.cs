@@ -77,19 +77,46 @@ namespace Racing.Core
             TrackRuntime = trackGo.AddComponent<TrackRuntime>();
             TrackRuntime.Build(track, roadMaterial, wallMaterial, groundMaterial);
 
-            _agents.Clear();
             _rngs = new DeterministicRng[numAgents];
             _results = new AgentStepResult[numAgents];
+            _initialSeed = initialSeed;
+            _initialMode = mode;
+            CreateAgents(initialSeed);
+            IsInitialized = true;
+            ResetAll(initialSeed, mode, 0);
+        }
+
+        long _initialSeed;
+        StartMode _initialMode;
+
+        void CreateAgents(long initialSeed)
+        {
+            _agents.Clear();
             for (int i = 0; i < numAgents; i++)
             {
-                VehicleController ctrl = VehicleFactory.Create(vehicle, sim, transform, "Car_" + i, carMaterial);
+                VehicleController ctrl = VehicleFactory.Create(vehicleConfig, simConfig, transform, "Car_" + i, carMaterial);
                 var agent = ctrl.gameObject.AddComponent<RaceAgentCore>();
-                agent.Initialize(i, TrackRuntime.Geometry, ctrl, sim, vehicle, rewardConfig);
+                agent.Initialize(i, TrackRuntime.Geometry, ctrl, simConfig, vehicleConfig, rewardConfig);
                 _agents.Add(agent);
                 _rngs[i] = new DeterministicRng(initialSeed + i);
             }
-            IsInitialized = true;
-            ResetAll(initialSeed, mode, 0);
+        }
+
+        /// <summary>
+        /// Destroys and re-creates every car exactly as Initialize did. A teleport keeps the WheelColliders' internal
+        /// PhysX state (suspension/contact/tire), so only fresh cars make an explicit reset reproducible within one
+        /// process (M3 RESET). Not for ML-Agents scenes (Agent components live on the cars). Allocates.
+        /// </summary>
+        public void RebuildAgents()
+        {
+            for (int i = 0; i < _agents.Count; i++)
+            {
+                GameObject go = _agents[i].gameObject;
+                go.SetActive(false); // leaves the physics scene now; Destroy completes at the end of the frame
+                Destroy(go);
+            }
+            CreateAgents(_initialSeed);
+            ResetAll(_initialSeed, _initialMode, 0);
         }
 
         /// <summary>Reseeds agent i with (seed + i) and respawns everyone. Mode and maxLaps stay until the next ResetAll.</summary>
@@ -128,9 +155,14 @@ namespace Racing.Core
         public string EnvConfigHash => _envConfigHash ?? (_envConfigHash = ComputeEnvConfigHash());
 
         /// <summary>env_config_hash over Sim, Vehicle, Reward, Track and the obs layout (plus optional extra parts).</summary>
-        public string ComputeEnvConfigHash(params IHashableConfig[] extra)
+        public string ComputeEnvConfigHash(params IHashableConfig[] extra) =>
+            ComputeEnvConfigHash(simConfig, vehicleConfig, rewardConfig, trackDefinition, extra);
+
+        /// <summary>Same hash without a running environment (EditMode tests, tools). Frozen value: contracts.md C0.14.</summary>
+        public static string ComputeEnvConfigHash(SimConfig sim, VehicleConfig vehicle, RewardConfig reward, TrackDefinition track,
+                                                  params IHashableConfig[] extra)
         {
-            var parts = new List<IHashableConfig> { simConfig, vehicleConfig, rewardConfig, trackDefinition, new ObsLayoutPart() };
+            var parts = new List<IHashableConfig> { sim, vehicle, reward, track, new ObsLayoutPart() };
             if (extra != null) parts.AddRange(extra);
             return ConfigHash.Compute(parts.ToArray());
         }

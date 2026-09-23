@@ -1,0 +1,8 @@
+# M3 bridge defaults. Hashes are frozen (contracts.md C0.14); a mismatch aborts the handshake.
+exe_path: ../Builds/RaceEnv/RaceEnv.exe   # relative to this file
+num_agents: 16
+port: 6005
+expected_obs_layout_hash: b40ca79bdba1c2c2
+expected_env_config_hash: 90240ee2b1a58b5b
+step_timeout_s: 60.0
+launch_timeout_s: 180.0

@@ -105,9 +105,12 @@ namespace Racing.Editor
         {
             var model = AssetDatabase.LoadAssetAtPath<ModelAsset>(modelAssetPath);
             if (model == null) throw new FileNotFoundException("ModelAsset not found", modelAssetPath);
-            EditorSceneManager.OpenScene(MlaScenePath, OpenSceneMode.Single);
+            // Re-use an already open (possibly dirty from a previous run) scene: switching would prompt to save.
+            if (SceneManager.GetActiveScene().path != MlaScenePath)
+                EditorSceneManager.OpenScene(MlaScenePath, OpenSceneMode.Single);
             var driver = Object.FindAnyObjectByType<MlaSimulationDriver>();
-            var runner = driver.gameObject.AddComponent<BenchmarkRunner>();
+            var runner = driver.GetComponent<BenchmarkRunner>();
+            if (runner == null) runner = driver.gameObject.AddComponent<BenchmarkRunner>();
             runner.Setup(model, trainSeed, outputPath, buildId);
             EditorApplication.isPlaying = true;
         }

@@ -55,3 +55,8 @@ Thumbs.db
 # ML-Agents editor timers / generated
 /[Aa]ssets/ML-Agents/
 /[Aa]ssets/ML-Agents.meta
+
+# Python run outputs (logs, timing dumps)
+/runs/
+/python/*.egg-info/
+__pycache__/

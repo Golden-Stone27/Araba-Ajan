@@ -53,7 +53,7 @@ info       RACE_INFO_V1[N]  (40 B, '<BBHHHifffffff'):
 ```
 
 - Done olan ajanın `info` alanı **biten episode'a** aittir (`final_info`).
-- N = 16 için payload 4448 B'dir.
+- N = 16 için payload **4064 B**'dir (1664 obs + 64 reward + 32 bayrak + 0 pad + 1664 final_obs + 640 info). İlk sürümdeki "4448" hesap hatasıydı (M3, C0.17).
 - Python tarafı `np.frombuffer` ile sıfır kopyalı görünüm alır.
 
 **Lockstep kuralları:**

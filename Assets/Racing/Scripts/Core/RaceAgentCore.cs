@@ -21,7 +21,7 @@ namespace Racing.Core
         TrackProjection _projection;
         Vector3 _prevPos;
         int _physicsSteps;
-        float _episodeReturn;
+        double _episodeReturn; // double: float32 accumulation over 15k steps drifts ~1e-3 from the per-block sum (M3 DoD 5)
         float _prevSteer;
         RewardBreakdown _episodeRewards;
         AgentTelemetry _telemetry;
@@ -75,7 +75,7 @@ namespace Racing.Core
             if (spawn.StartTiming) _lapTimer.Start();
             _monitor.Reset();
             _physicsSteps = 0;
-            _episodeReturn = 0f;
+            _episodeReturn = 0.0;
             _prevSteer = 0f;
             _episodeRewards = default;
             LastRewards = default;
@@ -160,7 +160,7 @@ namespace Racing.Core
         public void AddReward(float r)
         {
             _episodeReturn += r;
-            _telemetry.EpisodeReturn = _episodeReturn;
+            _telemetry.EpisodeReturn = (float)_episodeReturn;
         }
 
         public void SetTermination(TermReason reason) => _telemetry.TermReason = reason;
@@ -178,7 +178,7 @@ namespace Racing.Core
             _telemetry.BestLapTime = _lapTimer.Best;
             _telemetry.Speed = _state.Velocity.magnitude;
             _telemetry.Progress = _projection.S / _track.Length;
-            _telemetry.EpisodeReturn = _episodeReturn;
+            _telemetry.EpisodeReturn = (float)_episodeReturn;
             _telemetry.PosX = _state.Position.x;
             _telemetry.PosZ = _state.Position.z;
         }
