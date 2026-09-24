@@ -1,4 +1,4 @@
-# M3 bridge defaults. Hashes are frozen (contracts.md C0.14); a mismatch aborts the handshake.
+# M3 bridge defaults. Hashes are frozen (CLAUDE.md); a mismatch aborts the handshake.
 exe_path: ../Builds/RaceEnv/RaceEnv.exe   # relative to this file
 num_agents: 16
 port: 6005

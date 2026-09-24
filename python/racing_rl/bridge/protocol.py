@@ -1,4 +1,4 @@
-"""M3 wire format (docs/milestones/M3_bridge_gym.md). Must stay byte-identical to Racing.Bridge.BridgeProtocol (C#)."""
+"""M3 wire format. Must stay byte-identical to Racing.Bridge.BridgeProtocol (C#)."""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ OBS_LAYOUT_V1 = (
     "|elat/6|prev(steer,thr)|grounded/4"
 )
 
-# Frozen values (contracts.md C0.14).
+# Frozen values (CLAUDE.md).
 FROZEN_OBS_LAYOUT_HASH = "b40ca79bdba1c2c2"
 FROZEN_ENV_CONFIG_HASH = "90240ee2b1a58b5b"
 

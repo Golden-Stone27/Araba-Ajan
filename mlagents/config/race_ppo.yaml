@@ -1,4 +1,4 @@
-# M2 ML-Agents PPO baseline (docs/milestones/M2_baseline_reward.md). Behavior name must match RaceAgent.Behavior.
+# M2 ML-Agents PPO baseline. Behavior name must match RaceAgent.Behavior.
 behaviors:
   RaceCar:
     trainer_type: ppo

@@ -161,7 +161,7 @@ namespace Racing.Core
         public string ComputeEnvConfigHash(params IHashableConfig[] extra) =>
             ComputeEnvConfigHash(simConfig, vehicleConfig, rewardConfig, trackDefinition, extra);
 
-        /// <summary>Same hash without a running environment (EditMode tests, tools). Frozen value: contracts.md C0.14.</summary>
+        /// <summary>Same hash without a running environment (EditMode tests, tools). Frozen value: CLAUDE.md.</summary>
         public static string ComputeEnvConfigHash(SimConfig sim, VehicleConfig vehicle, RewardConfig reward, TrackDefinition track,
                                                   params IHashableConfig[] extra)
         {

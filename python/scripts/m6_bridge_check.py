@@ -1,5 +1,5 @@
 """
-M6 step 4 checks against the real bridge build (docs/milestones/M6_multitrack.md, contracts C0.20).
+M6 step 4 checks against the real bridge build.
 
     python scripts/m6_bridge_check.py smoke
     python scripts/m6_bridge_check.py regress [--all-variants]

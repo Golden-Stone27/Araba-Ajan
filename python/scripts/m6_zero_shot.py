@@ -1,5 +1,5 @@
 """
-M6 zero-shot generalisation benchmark (docs/milestones/M6_multitrack.md step 5, contracts C0.20): the six M5 models,
+M6 zero-shot generalisation benchmark: the six M5 models,
 all trained on Track_A only (custom PPO best.pt s1-s3, ML-Agents ONNX s1-s3), evaluated with the C0.10 protocol on
 every catalog track and four procedural tracks.
 

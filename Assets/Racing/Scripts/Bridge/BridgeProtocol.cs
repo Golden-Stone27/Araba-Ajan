@@ -6,7 +6,7 @@ using Racing.Core;
 namespace Racing.Bridge
 {
     /// <summary>
-    /// Wire format of the M3 bridge (docs/milestones/M3_bridge_gym.md). Little-endian throughout.
+    /// Wire format of the M3 bridge. Little-endian throughout.
     /// Header (16 B, Python struct "&lt;IHHII"): magic, version, msg_type, seq, payload_len.
     /// </summary>
     public static class BridgeProtocol

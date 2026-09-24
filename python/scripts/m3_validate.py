@@ -1,5 +1,5 @@
 """
-M3 DoD validation against the bridge player (docs/milestones/M3_bridge_gym.md, "Testler ve DoD" 2-7).
+M3 DoD validation against the bridge player.
 Writes benchmarks/eval/m3_bridge_validation.json and benchmarks/eval/bridge_s{1,2,3}.json.
 
     python scripts/m3_validate.py                      # everything

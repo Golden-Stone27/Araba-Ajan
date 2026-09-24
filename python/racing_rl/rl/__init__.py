@@ -1,4 +1,4 @@
-"""M4: from-scratch PyTorch PPO (docs/milestones/M4_pytorch_ppo.md). M5 builds the training CLI on top of it."""
+"""M4: from-scratch PyTorch PPO. M5 builds the training CLI on top of it."""
 
 from .buffer import Minibatch, RolloutBuffer
 from .config import LinearSchedule, PPOConfig, get_preset, load_yaml, presets
