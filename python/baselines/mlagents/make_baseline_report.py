@@ -1,6 +1,6 @@
 """Builds outputs/benchmarks/baseline_mlagents.json (C0.10 schema) from per-seed eval files + TensorBoard curves.
 
-Usage (from the ASCII junction D:\\RaceAgent, Python = python/.venv-mla):
+Usage (from the repo root, Python = python/.venv-mla):
   python python/baselines/mlagents/make_baseline_report.py --seed 1:outputs/benchmarks/eval/mlagents_s1.json:baseline_s1:RaceCar-999981 [--seed 2:...]
 
 Each --seed is  <train_seed>:<eval json>:<run id>:<evaluated checkpoint name>.

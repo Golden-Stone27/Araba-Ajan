@@ -52,29 +52,27 @@ unity/ TestRunReporter / -runTests ──► outputs/test-results/
 
 ## Runbook
 
-Tüm komutlar ASCII junction üzerinden çalışır (proje yolu ASCII değil):
+Repo kökü `D:\Unity Projects\RaceAgent`. Yol ASCII kalmalı: Türkçe karakterli yol pip ve Unity araçlarını bozuyor.
 
-```
-mklink /J D:\RaceAgent "<repo yolu>"
-```
-
-**Python ortamları** (`D:\RaceAgent` içinden):
+**Python ortamları** (repo kökünden). Sürümler kilit dosyalarından gelir:
 
 ```
 py -3.10 -m venv python\.venv
-python\.venv\Scripts\python -m pip install -e "python[test,train]" --extra-index-url https://download.pytorch.org/whl/cpu
+python\.venv\Scripts\python -m pip install -r python\requirements.lock.txt --extra-index-url https://download.pytorch.org/whl/cpu
+python\.venv\Scripts\python -m pip install --no-deps -e python
 py -3.10 -m venv python\.venv-mla
 python\.venv-mla\Scripts\python -m pip install -r python\baselines\mlagents\requirements.lock.txt --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
-**Unity:** Hub'da `Add` ile `D:\RaceAgent\unity` eklenir. Build'ler `Racing/...` menülerinden alınır ya da Editor kapalıyken batch ile:
+**Unity:** Hub'da `Add` ile `unity/` klasörü eklenir. Repo kökü eklenmez; kökü açan Unity oraya boş bir proje üretir. Build'ler `Racing/...` menülerinden alınır ya da Editor kapalıyken batch ile:
 
 ```
-Unity.exe -batchmode -quit -projectPath D:\RaceAgent\unity -executeMethod Racing.Editor.BuildScript.BuildBridge
-Unity.exe -batchmode -projectPath D:\RaceAgent\unity -runTests -testPlatform EditMode -testResults D:\RaceAgent\outputs\test-results\EditMode.xml
+Unity.exe -batchmode -quit -projectPath "D:\Unity Projects\RaceAgent\unity" -executeMethod Racing.Editor.BuildScript.BuildBridge
 ```
 
-**Eğitim ve ölçüm** (`D:\RaceAgent\python` içinden, `.venv` etkin):
+Unity testleri açık Editor'de `Racing.Editor.TestRunReporter.Run("EditMode" | "PlayMode")` ile koşulur (özet: `outputs/test-results/`). Batchmode `-runTests` ayırma testini (`AllocationTests`) süreç gürültüsü yüzünden düşürebilir.
+
+**Eğitim ve ölçüm** (`python/` içinden, `.venv` etkin):
 
 ```
 python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --track Track_A --run-dir ../outputs/runs/demo
@@ -84,7 +82,7 @@ pytest
 python scripts/m6_bridge_check.py regress
 ```
 
-**ML-Agents baseline** (`D:\RaceAgent` içinden, `.venv-mla` etkin):
+**ML-Agents baseline** (repo kökünden, `.venv-mla` etkin):
 
 ```
 mlagents-learn python/baselines/mlagents/config/race_ppo.yaml --env outputs/builds/RaceEnv_MLA/RaceEnv.exe --results-dir outputs/runs/mlagents --run-id baseline_s1

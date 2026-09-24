@@ -22,7 +22,7 @@ Planlanan aşamaların hepsi tamamlandı:
 
 - **Unity 6000.4.6f1** (C#, PhysX, eski Input Manager, UI Toolkit). `com.unity.ml-agents` 4.1.0; `com.unity.ai.inference` 2.6.1 `unity/Packages/` altında gömülü ve yamalı (bkz. `EMBEDDED_PATCH.md`).
 - **Python 3.10.11**, iki ortam:
-  - `python/.venv`: özel motor. torch 2.14.0+cpu, gymnasium, numpy 2, onnxruntime, tensorboard. `pip install -e python`.
+  - `python/.venv`: özel motor. torch 2.14.0+cpu, gymnasium, numpy 2, onnxruntime, tensorboard (`python/requirements.lock.txt`, ardından `pip install --no-deps -e python`).
   - `python/.venv-mla`: baseline. `mlagents==1.1.0` (`python/baselines/mlagents/requirements.lock.txt`).
 - Donanım yalnız CPU (AMD GPU, CUDA yok). Paralellik: süreç başına N ajan × K Unity süreci.
 
@@ -32,7 +32,7 @@ Planlanan aşamaların hepsi tamamlandı:
 
 ```
 paths.json                 build, çıktı ve katalog yolları
-unity/                     Unity projesi (projectPath = D:\RaceAgent\unity)
+unity/                     Unity projesi (Hub'a eklenen klasör budur, repo kökü değil)
   Assets/Racing/Scripts/
     Core/       Ortam çekirdeği: araç, pist, sensör, ödül, sonlanma, RaceEnvironment. ML-Agents referansı yasak.
     MLAgents/   M2 baseline ajanı (Race_MLAgents sahnesi)
@@ -82,10 +82,10 @@ Koddaki `C0.x` etiketleri silinmiş `docs/contracts.md` bölümlerine atıftır;
 - Kullanıcıyla Türkçe konuş. Kod ve kod yorumları İngilizce, dokümanlar Türkçe.
 - Plan onaylansa bile kullanıcı "başla" demeden uygulamaya geçme. Commit'i yalnız kullanıcı isteyince at.
 - Makine tr-TR: C#'ta `InvariantCulture` ve `Ordinal` zorunlu. Core'da `Time.*` ve `UnityEngine.Random` yasak (`DeterministicRng` kullan), adım başına GC ayırması yok.
-- Proje yolu ASCII değil. Build, eğitim ve Python işleri `D:\RaceAgent` junction'ı (repo kökü) üzerinden yapılır; Unity projesi `D:\RaceAgent\unity`.
+- Repo kökü `D:\Unity Projects\RaceAgent`, Unity projesi `unity/`. Yol ASCII kalmalı: Türkçe karakterli yol pip ve Unity araçlarını bozuyor.
 - Batchmode test için Editor kapalı olmalı; Editor açıkken Unity MCP araçları kullanılır. Test sonuçları `outputs/test-results/`.
 
-## Sık komutlar (`D:\RaceAgent\python` içinden)
+## Sık komutlar (`python/` içinden, `python/.venv` etkin)
 
 ```
 python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --track Track_A --run-dir ../outputs/runs/demo

@@ -11,7 +11,7 @@ namespace Racing.Editor
 {
     /// <summary>
     /// M3 tooling: Race_Bridge scene (RaceEnvironment + BridgeDriver) and the bridge player build.
-    /// Batch: Unity.exe -batchmode -quit -projectPath D:\RaceAgent\unity -executeMethod Racing.Editor.BuildScript.BuildBridge
+    /// Batch: Unity.exe -batchmode -quit -projectPath &lt;repo&gt;\unity -executeMethod Racing.Editor.BuildScript.BuildBridge
     /// </summary>
     public static class BuildScript
     {
