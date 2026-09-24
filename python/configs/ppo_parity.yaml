@@ -1,4 +1,4 @@
-# M5 main run: ML-Agents race_ppo.yaml equivalent (M4 "parity" preset, docs/milestones/M4_pytorch_ppo.md).
+# M5 main run: ML-Agents race_ppo.yaml equivalent (M4 "parity" preset).
 # silu 256x2, mlagents_scale, lr 3e-4 -> 1e-10, eps 0.2 -> 0.1, beta 5e-3 -> 1e-5, 3 epochs, minibatch 1024,
 # T = 20480 // N_total. Run section: K x N chosen by sps_probe (p99 < 50 ms, highest SPS).
 ppo:

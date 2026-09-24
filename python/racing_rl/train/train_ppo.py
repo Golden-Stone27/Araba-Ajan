@@ -1,8 +1,8 @@
 """
 M5 training CLI: custom PyTorch PPO (racing_rl.rl) on K Unity processes × N agents over the M3 bridge.
 
-    python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --seed 1 --run-dir ../runs/m5/parity_s1
-    python -m racing_rl.train.train_ppo --run-dir ../runs/m5/parity_s1 --resume
+    python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --seed 1 --run-dir ../outputs/runs/m5/parity_s1
+    python -m racing_rl.train.train_ppo --run-dir ../outputs/runs/m5/parity_s1 --resume
 
 Loop (M5 doc): progress = global_step / total_steps → collect T×N decisions (collect_rollout, torch threads 2) →
 GAE → PPOTrainer.update (threads 4). Every ckpt_every updates ckpt_{step}.pt (≤ 10 kept); every eval_every updates
@@ -23,7 +23,7 @@ its whole life (MultiUnityVecEnv). Validation runs on run.eval_track (default: t
 run.json carry env_config_hash = that track's hash (one track) or the composite "multi:<sha>" (several tracks,
 racing_rl.bridge.tracks.composite_hash) and extra.tracks = {id: env_config_hash}. No --track is the M5 run (Track_A).
 
-    python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --seed 1 --run-dir ../runs/m6/mix_s1 \\
+    python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --seed 1 --run-dir ../outputs/runs/m6/mix_s1 \\
         --track Track_A --track Track_B --track Track_C --track Track_D
 """
 
@@ -45,6 +45,7 @@ import numpy as np
 import torch
 import yaml
 
+from racing_rl import paths
 from racing_rl.bridge.errors import BridgeError, UnityCrashedError
 from racing_rl.bridge.evaluate import per_seed_report, run_eval
 from racing_rl.bridge.multi_env import MultiUnityVecEnv
@@ -58,8 +59,7 @@ from racing_rl.rl.policy import git_sha, save_checkpoint
 
 from .telemetry import InstrumentedVecEnv, RaceStats, RunLogger
 
-REPO = Path(__file__).resolve().parents[3]
-DEFAULT_EXE = REPO / "Builds" / "RaceEnv" / "RaceEnv.exe"
+DEFAULT_EXE = paths.BRIDGE_EXE
 CKPT_RE = re.compile(r"^ckpt_(\d+)\.pt$")
 MAX_RESTARTS_PER_HOUR = 3
 

@@ -1,13 +1,12 @@
-# --- Unity ---
-/[Ll]ibrary/
-/[Tt]emp/
-/[Oo]bj/
-/[Ll]ogs/
-/[Uu]ser[Ss]ettings/
-/[Bb]uild/
-/[Bb]uilds/
-/[Mm]emoryCaptures/
-/[Rr]ecordings/
+# --- Unity (unity/) ---
+/unity/[Ll]ibrary/
+/unity/[Tt]emp/
+/unity/[Oo]bj/
+/unity/[Ll]ogs/
+/unity/[Uu]ser[Ss]ettings/
+/unity/[Mm]emoryCaptures/
+/unity/[Rr]ecordings/
+/unity/[Aa]ssets/[Ss]treamingAssets/aa*
 *.csproj
 *.unityproj
 *.sln
@@ -26,38 +25,28 @@
 *.mdb.meta
 sysinfo.txt
 crashlytics-build.properties
-/[Aa]ssets/[Ss]treamingAssets/aa*
 .vs/
 .vscode/
 .idea/
 .utmp/
 
-# Test sonuçları
-/TestResults*.xml
-/[Tt]est[Rr]esults/
+# ML-Agents editor timers / generated
+/unity/[Aa]ssets/ML-Agents/
+/unity/[Aa]ssets/ML-Agents.meta
 
-# --- Python ---
+# --- Python (python/) ---
 .venv*/
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
 
-# --- Eğitim çıktıları ---
-/python/runs/
-/mlagents/results/
-/benchmarks/plots/*.tmp
-/benchmarks/eval/unity_logs/
+# --- Çıktılar (outputs/): yalnız benchmarks/ versiyonlanır ---
+/outputs/builds/
+/outputs/runs/
+/outputs/test-results/
+/outputs/benchmarks/plots/*.tmp
 
 # --- OS ---
 .DS_Store
 Thumbs.db
-
-# ML-Agents editor timers / generated
-/[Aa]ssets/ML-Agents/
-/[Aa]ssets/ML-Agents.meta
-
-# Python run outputs (logs, timing dumps)
-/runs/
-/python/*.egg-info/
-__pycache__/

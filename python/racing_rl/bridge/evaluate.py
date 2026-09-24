@@ -3,8 +3,8 @@ C0.10 benchmark over the bridge (evaluator "bridge"): N = 20 agents, EvalGrid (s
 policy, first episode per agent. Mirrors Racing.Core.BenchmarkRecorder; differences are sampling-only:
 mean speed and sector splits use per-decision (0.1 s) samples instead of per-physics-step (0.02 s) ones.
 
-    python -m racing_rl.bridge.evaluate --exe ..\\Builds\\RaceEnv\\RaceEnv.exe \\
-        --model ..\\benchmarks\\models\\mlagents_baseline_s1.onnx --train-seed 1 --out ..\\benchmarks\\eval\\bridge_s1.json
+    python -m racing_rl.bridge.evaluate --exe ..\\outputs\\builds\\RaceEnv\\RaceEnv.exe \\
+        --model ..\\outputs\\benchmarks\\models\\mlagents_baseline_s1.onnx --train-seed 1 --out ..\\outputs\\benchmarks\\eval\\bridge_s1.json
 """
 
 from __future__ import annotations

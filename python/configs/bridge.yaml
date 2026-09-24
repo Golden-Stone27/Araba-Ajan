@@ -1,5 +1,5 @@
-# M3 bridge defaults. Hashes are frozen (contracts.md C0.14); a mismatch aborts the handshake.
-exe_path: ../Builds/RaceEnv/RaceEnv.exe   # relative to this file
+# M3 bridge defaults. Hashes are frozen (CLAUDE.md); a mismatch aborts the handshake.
+# Player path: paths.json (bridge_exe) at the repo root, read via racing_rl.paths.
 num_agents: 16
 port: 6005
 expected_obs_layout_hash: b40ca79bdba1c2c2

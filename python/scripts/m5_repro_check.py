@@ -13,9 +13,9 @@ import shutil
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "python"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from racing_rl import paths  # noqa: E402
 from racing_rl.train import train_ppo  # noqa: E402
 
 TIMING = {"time_collect_s", "time_update_s", "sps", "collect_sps", "wallclock_s", "step_latency_p50_ms",
@@ -28,12 +28,12 @@ def canon(v):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--config", default=str(REPO / "python" / "configs" / "ppo_parity.yaml"))
+    ap.add_argument("--config", default=str(Path(__file__).resolve().parents[1] / "configs" / "ppo_parity.yaml"))
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--updates", type=int, default=2)
-    ap.add_argument("--out", default=str(REPO / "benchmarks" / "eval" / "m5_repro.json"))
+    ap.add_argument("--out", default=str(paths.EVAL / "m5_repro.json"))
     a = ap.parse_args()
-    root = REPO / "runs" / "m5" / "_repro"
+    root = paths.RUNS / "m5" / "_repro"
     shutil.rmtree(root, ignore_errors=True)
     hist = []
     for i in range(2):

@@ -1,16 +1,14 @@
 """Tests against the real bridge player (pytest -m unity). The full-size DoD runs live in scripts/m3_validate.py."""
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 
+from racing_rl import paths
 from racing_rl.bridge import OnnxPolicy, RacingEnv, UnityVecEnv
 from racing_rl.bridge.protocol import FROZEN_ENV_CONFIG_HASH, FROZEN_OBS_LAYOUT_HASH
 
-REPO = Path(__file__).resolve().parents[2]
-EXE = REPO / "Builds" / "RaceEnv" / "RaceEnv.exe"
-LOGS = REPO / "runs" / "pytest_unity_logs"
+EXE = paths.BRIDGE_EXE
+LOGS = paths.RUNS / "pytest_unity_logs"
 
 pytestmark = [pytest.mark.unity, pytest.mark.skipif(not EXE.is_file(), reason=f"bridge player missing: {EXE}")]
 
@@ -67,7 +65,7 @@ def test_two_processes_bitwise_equal():
 
 
 def test_onnx_policy_io_names():
-    p = OnnxPolicy(REPO / "benchmarks" / "models" / "mlagents_baseline_s1.onnx")
+    p = OnnxPolicy(paths.MODELS / "mlagents_baseline_s1.onnx")
     assert "obs_0" in p.input_names and "deterministic_continuous_actions" in p.output_names
     a = p(np.zeros((3, 26), np.float32))
     assert a.shape == (3, 2) and np.all(np.abs(a) <= 1.0)

@@ -2,14 +2,14 @@
 M5 official benchmark (C0.10 over the bridge, test seeds 1000..1019, deterministic μ, same build + evaluator for
 both policies). One 20-agent Unity process is reused; every evaluation starts with RESET (fresh cars, C0.17).
 
-    python scripts/m5_benchmark.py --runs ../runs/m5/parity_s1 ../runs/m5/parity_s2 ../runs/m5/parity_s3
+    python scripts/m5_benchmark.py --runs ../outputs/runs/m5/parity_s1 ../outputs/runs/m5/parity_s2 ../outputs/runs/m5/parity_s3
 
 Writes
-  benchmarks/mlagents_bridge.json  M2 ONNX models (models/mlagents_baseline_s{1,2,3}.onnx)
-  benchmarks/custom_ppo.json       per run: best.pt (official, selected on validation seeds 2000..2019, C0.19),
+  outputs/benchmarks/mlagents_bridge.json  M2 ONNX models (models/mlagents_baseline_s{1,2,3}.onnx)
+  outputs/benchmarks/custom_ppo.json       per run: best.pt (official, selected on validation seeds 2000..2019, C0.19),
                                    the final checkpoint and the 1M-decision milestone; training statistics
-  benchmarks/models/custom_ppo_s{seed}.pt   copies of the evaluated best.pt
-  benchmarks/eval/traces/{mlagents,custom}_s{seed}.npz  per-decision traces for compare.py
+  outputs/benchmarks/models/custom_ppo_s{seed}.pt   copies of the evaluated best.pt
+  outputs/benchmarks/eval/traces/{mlagents,custom}_s{seed}.npz  per-decision traces for compare.py
 """
 
 from __future__ import annotations
@@ -21,17 +21,17 @@ import statistics
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "python"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from racing_rl import paths  # noqa: E402
 from racing_rl.bridge.evaluate import report  # noqa: E402
 from racing_rl.bridge.protocol import FROZEN_ENV_CONFIG_HASH  # noqa: E402
 from racing_rl.bridge.vec_env import UnityVecEnv  # noqa: E402
 from racing_rl.train.evaluate import DEFAULT_EXE, evaluate  # noqa: E402
 from racing_rl.train.train_ppo import latest_checkpoint  # noqa: E402
 
-BENCH = REPO / "benchmarks"
-TRACES = BENCH / "eval" / "traces"
+BENCH = paths.BENCHMARKS
+TRACES = paths.TRACES
 EVAL = {"episodes": 20, "seed_base": 1000, "laps": 3, "start": "grid", "deterministic": True}
 
 
@@ -57,7 +57,7 @@ def main() -> None:
     a = ap.parse_args()
 
     env = UnityVecEnv(a.exe, num_agents=EVAL["episodes"], port=a.port, expected_env_hash=FROZEN_ENV_CONFIG_HASH,
-                      log_dir=BENCH / "eval" / "unity_logs")
+                      log_dir=paths.RUNS / "unity_logs")
     try:
         if not a.skip_mlagents:
             print("ML-Agents (M2 ONNX):", flush=True)
@@ -65,7 +65,7 @@ def main() -> None:
             for s in (1, 2, 3):
                 model = BENCH / "models" / f"mlagents_baseline_s{s}.onnx"
                 r = evaluate(env, f"onnx:{model}", s, EVAL["seed_base"], TRACES / f"mlagents_s{s}.npz")["per_seed"]
-                r["policy_spec"] = f"onnx:benchmarks/models/{model.name}"
+                r["policy_spec"] = f"onnx:{paths.rel(model)}"
                 per_seed.append(r)
                 show(f"s{s} {model.name}", r)
             base = json.loads((BENCH / "baseline_mlagents.json").read_text(encoding="utf-8"))
@@ -82,7 +82,7 @@ def main() -> None:
             dst = BENCH / "models" / f"custom_ppo_s{s}.pt"
             shutil.copy2(run / "best.pt", dst)
             r = evaluate(env, f"torch:{dst}", s, EVAL["seed_base"], TRACES / f"custom_s{s}.npz")["per_seed"]
-            r.update(policy_spec=f"torch:benchmarks/models/{dst.name}", checkpoint_step=summ["best_step"])
+            r.update(policy_spec=f"torch:{paths.rel(dst)}", checkpoint_step=summ["best_step"])
             best.append(r)
             show(f"s{s} best.pt @{summ['best_step']:,}", r)
             ck = latest_checkpoint(run / "checkpoints")

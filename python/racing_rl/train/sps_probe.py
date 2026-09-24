@@ -6,7 +6,7 @@ random actions. Reported: agent-decisions/s (SPS = vector steps · N · K / s) a
 (step_async → step_wait over all K processes) p50 / p99. With --policy the actions come from an untrained
 ActorCritic (act_full, update_rms=True, torch threads = 2), i.e. the realistic collection loop without the update.
 
-    python -m racing_rl.train.sps_probe --exe ..\\Builds\\RaceEnv\\RaceEnv.exe --out ..\\benchmarks\\eval\\m5_sps_probe.json
+    python -m racing_rl.train.sps_probe --exe ..\\outputs\\builds\\RaceEnv\\RaceEnv.exe --out ..\\outputs\\benchmarks\\eval\\m5_sps_probe.json
 
 Selection rule: the highest-SPS configuration whose p99 step latency is < 50 ms.
 """

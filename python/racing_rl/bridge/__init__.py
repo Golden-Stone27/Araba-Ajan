@@ -1,4 +1,4 @@
-"""M3 bridge: Python TCP server <-> Unity client (docs/milestones/M3_bridge_gym.md)."""
+"""M3 bridge: Python TCP server <-> Unity client."""
 
 from .errors import (BridgeError, DesyncError, ProtocolMismatchError, RemoteError, UnityCrashedError, UnityLaunchError,
                      UnityTimeoutError)
