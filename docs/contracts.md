@@ -421,3 +421,14 @@ Aşamalar arası teslimler:
   - Sonuç: 42 değerlendirmenin 20'si 3 turu bitirdi (özel 10/21, ML 10/21). Track_C ve `proc:1000` 6/6, `proc:7` 5/6, `proc:1` 2/6, `proc:0` 1/6, Track_B ve Track_D 0/6. Bitirilen ortak pistlerde özel PPO daha hızlıdır (Track_C 39.60 s'ye karşı 44.12 s).
   - Bulgu: completion her değerlendirmede 0 ya da 1'dir. Deterministik μ ve küçük pertürbasyon yüzünden bir modelin 20 ajanı aynı noktada (±1 m) çarpar; C0.10 pist başına ikili bir sonuç verir. Çarpışmalar dar virajlarda (R < 30 m, ardışık ters yönlü virajlar) ve Track_D'de yokuşun son 60 m'sinde kümelenir; bir pistte R < 30 m olan uzunluk arttıkça onu bitiren model sayısı düşer.
   - 10M karma eğitim kapsam dışıdır (kullanıcı kararı).
+
+## C0.21 UI1 izleme arayüzü notları
+
+- **Ölçüm aracı değildir:** `Race_Viewer` sahnesi aynı süreçte pisti yeniden kurar. Eğimli pistlerde (Track_D) bu kurulum bit düzeyinde tekrarlanabilir değildir (C0.20 eğim bulgusu). Benchmark ve değerlendirme sayıları her zaman taze süreçten (`-trackName`) ve C0.10 protokolünden alınır.
+- **Değişmezler korunur:** Core, Bridge ve MLAgents koduna dokunulmadı. Env Freeze (C0.14), gözlem düzeni ve köprü build'i etkilenmez. Viewer ortamı Track_A'da `90240ee2b1a58b5b` verir (PlayMode testi).
+- **Derleme:** `Racing.Viewer` autoReferenced'tır, bu yüzden player build'lerine derlenir. Köprü sahnesi onu kullanmaz. `Race_Viewer.unity` Build Settings'te yoktur.
+- **Viewer'a özgü sürüş kuralları:**
+  - TimeLimit (kesme) yok sayılır, otopilot tur atmaya devam eder.
+  - Kazada otopilotlu araç `ResetAgent` ile yeniden başlar. Klavyedeki araç yalnız takla, pist dışı veya sayısal hatada sıfırlanır.
+  - Elle sıfırlama (R) `RebuildAgents` kullanır (C0.17).
+- Ayrıntı: [`milestones/UI1_viewer.md`](milestones/UI1_viewer.md).

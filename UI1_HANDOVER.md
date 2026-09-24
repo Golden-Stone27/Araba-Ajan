@@ -2,7 +2,7 @@
 
 > **Okuma sırası:** Önce bu dosya, sonra [`M6_HANDOVER.md`](M6_HANDOVER.md) §1 (çalışma kuralları) ve §3 (kritik bulgular), en son [`docs/contracts.md`](docs/contracts.md) C0.14 ve C0.20.
 > **Tarih:** 2026-09-23. **Dal:** `GS`. **Commit'ler:** Adım 1 `a8932c7` ("Adım 1: Viewer altyapısı"), Adım 2 `03b540c` ("Adım 2 Bitti"). Çalışma ağacı bu dosya dışında temiz.
-> **Durum:** Adım 1 ve 2 tamam ve commit'li. Proje bu noktada durduruldu; bekleyen görev yok.
+> **Durum:** UI1 Faz 1 tamamlandı (Adım 1–3). Adım 3 kapanışı: [`docs/milestones/UI1_viewer.md`](docs/milestones/UI1_viewer.md) ve contracts C0.21. Bekleyen görev yok; sonraki faz kullanıcı kararıdır.
 
 ## 1. Çalışma kuralları (özet; tamamı M6_HANDOVER §1)
 
@@ -20,7 +20,7 @@ Terminalden betik çalıştırmak yerine Unity içinde, fareyle kullanılan hafi
 - **Kullanıcı kararları (onaylı):** Arayüz UI Toolkit ile yapılır; uGUI paketi eklenmez, `Packages/manifest.json` temiz kalır. Otopilot (PurePursuit) varsayılan olarak açık.
 - **Mimari:** Pist değişince sahne yeniden yüklenmez. `ViewerController` eski `RaceEnvironment`'ı siler (`SetActive(false)` + `Destroy`). Sahnedeki pasif şablonu (`RaceEnvironment (Template)`, `initializeOnAwake = false`) klonlar, klonu viewer'ın sahnesine taşır ve `InitializeFromSerialized(1, 1000, EvalGrid, def)` çağırır. Pist `TrackCatalog.TryResolve` ile çözülür, köprüyle aynı yol.
 - **Core, Bridge ve MLAgents koduna dokunulmadı.** Yeniden build gerekmedi.
-- **Ölçüm aracı değil:** Aynı süreçte pist yeniden kurulduğu için Track_D (eğimli) bit düzeyinde tekrarlanabilir değildir (C0.20 bulgusu). Benchmark sayıları her zaman taze süreçten (`-trackName`) alınır.
+- **Ölçüm aracı değil:** Aynı süreçte pist yeniden kurulduğu için Track_D (eğimli) bit düzeyinde tekrarlanabilir değildir (C0.20 bulgusu). Benchmark sayıları her zaman taze süreçten (`-trackName`) alınır (C0.21).
 
 ## 3. Mevcut durum (Adım 1 + 2)
 
