@@ -84,6 +84,7 @@ Koddaki `C0.x` etiketleri silinmiş `docs/contracts.md` bölümlerine atıftır;
 - Makine tr-TR: C#'ta `InvariantCulture` ve `Ordinal` zorunlu. Core'da `Time.*` ve `UnityEngine.Random` yasak (`DeterministicRng` kullan), adım başına GC ayırması yok.
 - Repo kökü `D:\Unity Projects\RaceAgent`, Unity projesi `unity/`. Yol ASCII kalmalı: Türkçe karakterli yol pip ve Unity araçlarını bozuyor.
 - Batchmode test için Editor kapalı olmalı; Editor açıkken Unity MCP araçları kullanılır. Test sonuçları `outputs/test-results/`.
+- Batchmode koşusu `unity/ProjectSettings/ProjectSettings.asset`'teki `SENTIS_ANALYTICS_ENABLED` define'ını siler, Editor normal açılınca sona geri ekler (inference paketi analytics ayarına bakıyor). Anlamsız bir fark; commit'leme, `git checkout` ile geri al.
 
 ## Sık komutlar (`python/` içinden, `python/.venv` etkin)
 
