@@ -18,14 +18,14 @@ namespace Racing.Editor
         public const string TrackCPath = Root + "/Config/TrackDefinition_C.asset";
         public const string TrackDPath = Root + "/Config/TrackDefinition_D.asset";
 
-        /// <summary>Python's copy of the catalog (racing_rl.bridge.tracks), relative to the project root.</summary>
-        public const string CatalogJsonRelPath = "python/racing_rl/bridge/track_catalog.json";
+        /// <summary>Python's copy of the catalog (racing_rl.bridge.tracks), repo-relative (paths.json track_catalog).</summary>
+        public static string CatalogJsonRelPath => RepoPaths.TrackCatalogRelPath;
         public const string CatalogJsonSchema = "race-track-catalog/v1";
 
         /// <summary>Procedural seeds whose hashes are frozen in C0.20; exported as procedural_refs.</summary>
         public static readonly long[] ProceduralRefSeeds = { 0, 1, 7, 1000 };
 
-        public static string CatalogJsonPath => Path.GetFullPath(Path.Combine(Application.dataPath, "..", CatalogJsonRelPath));
+        public static string CatalogJsonPath => RepoPaths.TrackCatalog;
 
         /// <summary>Catalog order is append-only: published indices never move.</summary>
         public static readonly string[] CatalogOrder = { ProjectSetup.TrackDefinitionPath, TrackBPath, TrackCPath, TrackDPath };

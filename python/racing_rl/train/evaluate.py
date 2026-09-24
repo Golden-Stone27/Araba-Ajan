@@ -2,9 +2,9 @@
 C0.10 evaluation over the bridge for both policy kinds (the official M5 comparison uses this for ML-Agents and
 custom PPO alike: same build, same evaluator, same seeds).
 
-    python -m racing_rl.train.evaluate --policy torch:../runs/m5/parity_s1/best.pt --train-seed 1 \\
-        --out ../benchmarks/eval/m5_custom_s1.json --trace ../benchmarks/eval/traces/custom_s1.npz
-    python -m racing_rl.train.evaluate --policy onnx:../benchmarks/models/mlagents_baseline_s1.onnx --train-seed 1 ...
+    python -m racing_rl.train.evaluate --policy torch:../outputs/runs/m5/parity_s1/best.pt --train-seed 1 \\
+        --out ../outputs/benchmarks/eval/m5_custom_s1.json --trace ../outputs/benchmarks/eval/traces/custom_s1.npz
+    python -m racing_rl.train.evaluate --policy onnx:../outputs/benchmarks/models/mlagents_baseline_s1.onnx --train-seed 1 ...
 
 --policy torch:<ckpt> | onnx:<path>. Defaults: 20 episodes, EvalGrid, seed base 1000 (test set; training-time model
 selection uses 2000, contracts C0.19), 3 laps, deterministic μ. --trace stores per-decision info of every agent
@@ -13,8 +13,8 @@ racing-line, speed and sector plots in compare.py.
 
 --track (M6) evaluates on another track (catalog id or proc:<seed>; zero-shot when the policy was trained elsewhere):
 
-    python -m racing_rl.train.evaluate --policy torch:../benchmarks/models/custom_ppo_s1.pt --train-seed 1 \\
-        --track Track_D --out ../runs/m6/eval_d_s1.json
+    python -m racing_rl.train.evaluate --policy torch:../outputs/benchmarks/models/custom_ppo_s1.pt --train-seed 1 \\
+        --track Track_D --out ../outputs/runs/m6/eval_d_s1.json
 
 The report's env_config_hash is the evaluated track's (compare.py only pairs reports of one environment); "track"
 holds the HELLO track fields and "train_tracks" the tracks the policy was trained on. A checkpoint is accepted when
@@ -31,14 +31,14 @@ from pathlib import Path
 
 import numpy as np
 
+from racing_rl import paths
 from racing_rl.bridge.evaluate import EPISODES, LAPS, SEED_BASE, per_seed_report, report, run_eval
 from racing_rl.bridge.policies import OnnxPolicy
 from racing_rl.bridge.protocol import FROZEN_ENV_CONFIG_HASH, FROZEN_OBS_LAYOUT_HASH
 from racing_rl.bridge.tracks import BENCHMARK_ID, training_tracks
 from racing_rl.bridge.vec_env import UnityVecEnv
 
-REPO = Path(__file__).resolve().parents[3]
-DEFAULT_EXE = REPO / "Builds" / "RaceEnv" / "RaceEnv.exe"
+DEFAULT_EXE = paths.BRIDGE_EXE
 TRACE_FIELDS = ("pos_x", "pos_z", "speed_mps", "progress", "laps", "ep_decisions", "lap_completed", "last_lap_s",
                 "term_reason")
 E_LAT_IDX, E_LAT_SCALE = 22, 6.0

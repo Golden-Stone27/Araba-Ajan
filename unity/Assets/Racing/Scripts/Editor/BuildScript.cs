@@ -11,14 +11,14 @@ namespace Racing.Editor
 {
     /// <summary>
     /// M3 tooling: Race_Bridge scene (RaceEnvironment + BridgeDriver) and the bridge player build.
-    /// Batch: Unity.exe -batchmode -quit -projectPath D:\RaceAgent -executeMethod Racing.Editor.BuildScript.BuildBridge
+    /// Batch: Unity.exe -batchmode -quit -projectPath D:\RaceAgent\unity -executeMethod Racing.Editor.BuildScript.BuildBridge
     /// </summary>
     public static class BuildScript
     {
         const string Root = "Assets/Racing";
         public const string BridgeScenePath = Root + "/Scenes/Race_Bridge.unity";
         public const string WatchScenePath = Root + "/Scenes/Race_Watch.unity";
-        public const string BridgeBuildPath = "Builds/RaceEnv/RaceEnv.exe";
+        public static string BridgeBuildPath => RepoPaths.BridgeExe;
 
         [MenuItem("Racing/Setup Bridge Scene (M3)")]
         public static void SetupBridgeScene()

@@ -20,9 +20,9 @@ include = ["racing_rl*"]
 "racing_rl.bridge" = ["track_catalog.json"]  # M6: exported from Unity (Racing/Tracks/Export Track Catalog (M6))
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "racing_rl/rl/tests"]
+testpaths = ["tests"]
 addopts = '-m "not slow"'
 markers = [
-    "unity: needs the Unity bridge player (Builds/RaceEnv/RaceEnv.exe)",
+    "unity: needs the Unity bridge player (paths.json bridge_exe: outputs/builds/RaceEnv/RaceEnv.exe)",
     "slow: long training runs (M4 DoD 9, Pendulum 1M steps); run with -m slow",
 ]

@@ -2,12 +2,12 @@
 M5 comparison: ML-Agents PPO (M2 ONNX over the bridge) vs custom PyTorch PPO, both evaluated with the same build,
 evaluator and seeds (C0.10). Refuses reports whose env_config_hash differ (C0.11).
 
-    python -m racing_rl.train.compare --mlagents ../benchmarks/mlagents_bridge.json \\
-        --custom ../benchmarks/custom_ppo.json --runs ../runs/m5/parity_s1 ../runs/m5/parity_s2 ../runs/m5/parity_s3 \\
-        --notes ../benchmarks/eval/m5_notes.md --out ../benchmarks/M5_FINAL.md
+    python -m racing_rl.train.compare --mlagents ../outputs/benchmarks/mlagents_bridge.json \\
+        --custom ../outputs/benchmarks/custom_ppo.json --runs ../outputs/runs/m5/parity_s1 ../outputs/runs/m5/parity_s2 ../outputs/runs/m5/parity_s3 \\
+        --notes ../outputs/benchmarks/eval/m5_notes.md --out ../outputs/benchmarks/M5_FINAL.md
 
 Tables: metric | ML-Agents PPO | Custom PPO | Δ%, per-seed results, 1M-decision snapshot, sample efficiency, DoD.
-Plots (benchmarks/plots/): learning curves (reward, training lap time, completion vs decisions; validation flying
+Plots (outputs/benchmarks/plots/): learning curves (reward, training lap time, completion vs decisions; validation flying
 lap), flying-lap box plot, racing line (x-z overlay and lateral offset e_lat over s), speed and steering profile
 over s, sector-time deltas.
 """

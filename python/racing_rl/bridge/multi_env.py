@@ -11,6 +11,7 @@ import gymnasium
 import numpy as np
 from gymnasium.vector.utils import batch_space
 
+from .. import paths
 from .tracks import BENCHMARK_ID, composite_hash, resolve_track
 from .vec_env import AUTO, UnityVecEnv
 
@@ -28,7 +29,7 @@ class MultiUnityVecEnv(gymnasium.vector.VectorEnv):
     metadata = {"autoreset_mode": gymnasium.vector.AutoresetMode.SAME_STEP}
 
     def __init__(self, exe_path: str | os.PathLike | None, num_processes: int = 2, num_agents: int = 16,
-                 base_port: int = 6005, expected_env_hash: str | None = AUTO, log_dir: str | os.PathLike = "runs/unity_logs",
+                 base_port: int = 6005, expected_env_hash: str | None = AUTO, log_dir: str | os.PathLike = paths.RUNS / "unity_logs",
                  step_timeout_s: float | None = None, launch_timeout_s: float = 180.0, *,
                  tracks: Sequence[str] | None = None, **kwargs):
         ports = [base_port + 25 * k for k in range(num_processes)]  # bind_server scans +20; keep ranges disjoint

@@ -17,7 +17,7 @@ namespace Racing.Editor
         const string Root = "Assets/Racing";
         public const string RewardConfigPath = Root + "/Config/RewardConfig.asset";
         public const string MlaScenePath = Root + "/Scenes/Race_MLAgents.unity";
-        public const string BuildPath = "Builds/RaceEnv_MLA/RaceEnv.exe";
+        public static string BuildPath => RepoPaths.MlaExe;
         public const string ModelsAssetDir = Root + "/Models";
 
         [MenuItem("Racing/Setup ML-Agents Scene (M2)")]
@@ -100,7 +100,10 @@ namespace Racing.Editor
             return report;
         }
 
-        /// <summary>Opens Race_MLAgents, adds a configured BenchmarkRunner (unsaved) and enters play mode.</summary>
+        /// <summary>
+        /// Opens Race_MLAgents, adds a configured BenchmarkRunner (unsaved) and enters play mode. A relative outputPath is
+        /// repo-relative (e.g. outputs/benchmarks/eval/mlagents_s1.json).
+        /// </summary>
         public static void StartBenchmark(int trainSeed, string modelAssetPath, string outputPath, string buildId)
         {
             var model = AssetDatabase.LoadAssetAtPath<ModelAsset>(modelAssetPath);
@@ -111,7 +114,7 @@ namespace Racing.Editor
             var driver = Object.FindAnyObjectByType<MlaSimulationDriver>();
             var runner = driver.GetComponent<BenchmarkRunner>();
             if (runner == null) runner = driver.gameObject.AddComponent<BenchmarkRunner>();
-            runner.Setup(model, trainSeed, outputPath, buildId);
+            runner.Setup(model, trainSeed, RepoPaths.Resolve(outputPath), buildId);
             EditorApplication.isPlaying = true;
         }
     }

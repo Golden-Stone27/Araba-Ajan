@@ -1,7 +1,7 @@
-"""Builds benchmarks/baseline_mlagents.json (C0.10 schema) from per-seed eval files + TensorBoard curves.
+"""Builds outputs/benchmarks/baseline_mlagents.json (C0.10 schema) from per-seed eval files + TensorBoard curves.
 
-Usage (from the ASCII junction D:\\RaceAgent, Python = .venv-mla):
-  python mlagents/make_baseline_report.py --seed 1:benchmarks/eval/mlagents_s1.json:baseline_s1:RaceCar-999981 [--seed 2:...]
+Usage (from the ASCII junction D:\\RaceAgent, Python = python/.venv-mla):
+  python python/baselines/mlagents/make_baseline_report.py --seed 1:outputs/benchmarks/eval/mlagents_s1.json:baseline_s1:RaceCar-999981 [--seed 2:...]
 
 Each --seed is  <train_seed>:<eval json>:<run id>:<evaluated checkpoint name>.
 Training summary per seed: total env decisions at the evaluated checkpoint, first summary step with
@@ -13,11 +13,16 @@ import glob
 import json
 import re
 import statistics
+import sys
 from pathlib import Path
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-RESULTS = Path("mlagents/results")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # racing_rl.paths only; .venv-mla has no racing_rl
+
+from racing_rl import paths  # noqa: E402
+
+RESULTS = paths.RUNS / "mlagents"
 CURVE_TAGS = {
     "reward": "Environment/Cumulative Reward",
     "episode_length": "Environment/Episode Length",
@@ -81,7 +86,7 @@ def training_summary(run_id, ckpt_step):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", action="append", required=True)
-    ap.add_argument("--out", default="benchmarks/baseline_mlagents.json")
+    ap.add_argument("--out", default=str(paths.BENCHMARKS / "baseline_mlagents.json"))
     args = ap.parse_args()
 
     per_seed, training, seeds, header = [], [], [], None
@@ -94,7 +99,7 @@ def main():
             raise SystemExit(f"env_config_hash mismatch: {eval_path}")
         entry = dict(rep["per_seed"][0])
         entry["seed"] = int(seed_s)
-        entry["model"] = f"benchmarks/models/mlagents_baseline_s{seed_s}.onnx"
+        entry["model"] = paths.rel(paths.MODELS / f"mlagents_baseline_s{seed_s}.onnx")
         entry["checkpoint"] = ckpt
         entry["build_id"] = rep["build_id"]
         per_seed.append(entry)

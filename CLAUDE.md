@@ -20,29 +20,41 @@ Planlanan aşamaların hepsi tamamlandı:
 
 ## Teknolojiler
 
-- **Unity 6000.4.6f1** (C#, PhysX, eski Input Manager, UI Toolkit). `com.unity.ml-agents` 4.1.0; `com.unity.ai.inference` 2.6.1 `Packages/` altında gömülü ve yamalı (bkz. `EMBEDDED_PATCH.md`).
+- **Unity 6000.4.6f1** (C#, PhysX, eski Input Manager, UI Toolkit). `com.unity.ml-agents` 4.1.0; `com.unity.ai.inference` 2.6.1 `unity/Packages/` altında gömülü ve yamalı (bkz. `EMBEDDED_PATCH.md`).
 - **Python 3.10.11**, iki ortam:
-  - `.venv`: özel motor. torch 2.14.0+cpu, gymnasium, numpy 2, onnxruntime, tensorboard. `pip install -e python`.
-  - `.venv-mla`: baseline. `mlagents==1.1.0`.
+  - `python/.venv`: özel motor. torch 2.14.0+cpu, gymnasium, numpy 2, onnxruntime, tensorboard. `pip install -e python`.
+  - `python/.venv-mla`: baseline. `mlagents==1.1.0` (`python/baselines/mlagents/requirements.lock.txt`).
 - Donanım yalnız CPU (AMD GPU, CUDA yok). Paralellik: süreç başına N ajan × K Unity süreci.
 
 ## Yapı
 
+Üç domain; ayrıntı `ARCHITECTURE.md`. Diller arası yolların tek kaynağı kökteki `paths.json` (C# `Racing.Editor.RepoPaths`, Python `racing_rl.paths`); yeni kodda yol sabit yazılmaz.
+
 ```
-Assets/Racing/Scripts/
-  Core/       Ortam çekirdeği: araç, pist, sensör, ödül, sonlanma, RaceEnvironment. ML-Agents referansı yasak.
-  MLAgents/   M2 baseline ajanı (Race_MLAgents sahnesi)
-  Bridge/     M3 TCP köprüsünün Unity tarafı (Race_Bridge sahnesi, Builds/RaceEnv)
-  Viewer/     UI1 izleme arayüzü
-  Editor/     Sahne/pist kurulum ve build menüleri (Racing/...)
-Assets/Racing/Tests/{EditMode,PlayMode}
-python/racing_rl/
-  bridge/     protokol, UnityVecEnv / MultiUnityVecEnv, pist kataloğu (track_catalog.json)
-  rl/         PPO: ağlar, GAE, buffer, normalizasyon, checkpoint
-  train/      train_ppo, evaluate, watch, compare CLI'ları
-python/scripts/   m3/m5/m6 doğrulama ve benchmark betikleri
-mlagents/         baseline config ve bağımlılıkları
-benchmarks/       benchmark JSON'ları, models/ (.pt, .onnx), plots/
+paths.json                 build, çıktı ve katalog yolları
+unity/                     Unity projesi (projectPath = D:\RaceAgent\unity)
+  Assets/Racing/Scripts/
+    Core/       Ortam çekirdeği: araç, pist, sensör, ödül, sonlanma, RaceEnvironment. ML-Agents referansı yasak.
+    MLAgents/   M2 baseline ajanı (Race_MLAgents sahnesi)
+    Bridge/     M3 TCP köprüsünün Unity tarafı (Race_Bridge sahnesi, outputs/builds/RaceEnv)
+    Viewer/     UI1 izleme arayüzü
+    Editor/     Sahne/pist kurulum, build ve test menüleri (Racing/...), RepoPaths
+  Assets/Racing/Tests/{EditMode,PlayMode}
+python/
+  racing_rl/
+    bridge/     protokol, UnityVecEnv / MultiUnityVecEnv, pist kataloğu (track_catalog.json)
+    rl/         PPO: ağlar, GAE, buffer, normalizasyon, checkpoint
+    train/      train_ppo, evaluate, watch, compare CLI'ları
+    paths.py    paths.json okuyucu
+  configs/            PPO ve köprü ayarları
+  scripts/            m3/m5/m6 doğrulama ve benchmark betikleri
+  tests/              pytest (tests/rl: PPO birim testleri)
+  baselines/mlagents/ ML-Agents baseline config, bağımlılıklar, rapor betiği
+outputs/
+  benchmarks/   versiyonlanan sonuçlar: JSON'lar, eval/, eval/traces/, models/ (.pt, .onnx), plots/
+  builds/       player build'leri (RaceEnv, RaceEnv_MLA)          [gitignore]
+  runs/         eğitim koşuları, Unity logları, mlagents/ sonuçları [gitignore]
+  test-results/ Unity test özetleri                               [gitignore]
 ```
 
 ## Ortam sözleşmesi (özet)
@@ -70,16 +82,16 @@ Koddaki `C0.x` etiketleri silinmiş `docs/contracts.md` bölümlerine atıftır;
 - Kullanıcıyla Türkçe konuş. Kod ve kod yorumları İngilizce, dokümanlar Türkçe.
 - Plan onaylansa bile kullanıcı "başla" demeden uygulamaya geçme. Commit'i yalnız kullanıcı isteyince at.
 - Makine tr-TR: C#'ta `InvariantCulture` ve `Ordinal` zorunlu. Core'da `Time.*` ve `UnityEngine.Random` yasak (`DeterministicRng` kullan), adım başına GC ayırması yok.
-- Proje yolu ASCII değil. Build, eğitim ve Python işleri `D:\RaceAgent` junction'ı üzerinden yapılır.
-- Batchmode test için Editor kapalı olmalı; Editor açıkken Unity MCP araçları kullanılır. Test sonuçları `TestResults/*_summary.txt`.
+- Proje yolu ASCII değil. Build, eğitim ve Python işleri `D:\RaceAgent` junction'ı (repo kökü) üzerinden yapılır; Unity projesi `D:\RaceAgent\unity`.
+- Batchmode test için Editor kapalı olmalı; Editor açıkken Unity MCP araçları kullanılır. Test sonuçları `outputs/test-results/`.
 
 ## Sık komutlar (`D:\RaceAgent\python` içinden)
 
 ```
-python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --track Track_A
-python -m racing_rl.train.evaluate --policy torch:../benchmarks/models/custom_ppo_s2.pt --train-seed 2 --track Track_A --out ../runs/eval.json
+python -m racing_rl.train.train_ppo --config configs/ppo_parity.yaml --track Track_A --run-dir ../outputs/runs/demo
+python -m racing_rl.train.evaluate --policy torch:../outputs/benchmarks/models/custom_ppo_s2.pt --train-seed 2 --track Track_A --out ../outputs/runs/eval.json
 python -m racing_rl.train.watch --track proc:7
-pytest                 # varsayılan "not slow"; -m unity gerçek build (Builds/RaceEnv) ister
+pytest                 # varsayılan "not slow"; -m unity gerçek build (outputs/builds/RaceEnv) ister
 ```
 
-`Builds/`, `runs/` ve `TestResults/` gitignore'dadır. Build'ler `Racing/...` Editor menülerinden üretilir.
+`outputs/` altında yalnız `benchmarks/` versiyonlanır. Build'ler `Racing/...` Editor menülerinden üretilir.

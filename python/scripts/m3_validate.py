@@ -1,6 +1,6 @@
 """
 M3 DoD validation against the bridge player.
-Writes benchmarks/eval/m3_bridge_validation.json and benchmarks/eval/bridge_s{1,2,3}.json.
+Writes outputs/benchmarks/eval/m3_bridge_validation.json and outputs/benchmarks/eval/bridge_s{1,2,3}.json.
 
     python scripts/m3_validate.py                      # everything
     python scripts/m3_validate.py --only parity determinism
@@ -19,16 +19,16 @@ from pathlib import Path
 
 import numpy as np
 
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "python"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from racing_rl import paths  # noqa: E402
 from racing_rl.bridge import OnnxPolicy, RacingEnv, UnityVecEnv  # noqa: E402
 from racing_rl.bridge.evaluate import per_seed_report, report, run_eval  # noqa: E402
 
-EXE = REPO / "Builds" / "RaceEnv" / "RaceEnv.exe"
-EVAL_DIR = REPO / "benchmarks" / "eval"
-RUNS = REPO / "runs" / "m3"
-BASELINE = REPO / "benchmarks" / "baseline_mlagents.json"
+EXE = paths.BRIDGE_EXE
+EVAL_DIR = paths.EVAL
+RUNS = paths.RUNS / "m3"
+BASELINE = paths.BENCHMARKS / "baseline_mlagents.json"
 
 
 def dod2_check_env() -> dict:
@@ -149,7 +149,7 @@ def dod6_parity(seeds=(1, 2, 3)) -> dict:
     base = {p["seed"]: p for p in json.loads(BASELINE.read_text(encoding="utf-8"))["per_seed"]}
     out = {}
     for s in seeds:
-        model = REPO / "benchmarks" / "models" / f"mlagents_baseline_s{s}.onnx"
+        model = paths.MODELS / f"mlagents_baseline_s{s}.onnx"
         policy = OnnxPolicy(model)
         env = UnityVecEnv(EXE, num_agents=20, log_dir=RUNS / "unity_logs")
         try:
@@ -190,7 +190,7 @@ def main() -> None:
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
     out_path = Path(a.out)
     res = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() and a.only else {}
-    res["meta"] = {"exe": str(EXE.relative_to(REPO)), "python": platform.python_version(), "numpy": np.__version__,
+    res["meta"] = {"exe": paths.rel(EXE), "python": platform.python_version(), "numpy": np.__version__,
                    "date": time.strftime("%Y-%m-%d %H:%M")}
     todo = a.only or ["check_env", "determinism", "stress", "parity"]
     for name in todo:

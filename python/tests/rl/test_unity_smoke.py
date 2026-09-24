@@ -5,19 +5,18 @@ checkpoint written; then the C0.10 bridge eval (20 agents) of the trained TorchP
 
 import json
 import time
-from pathlib import Path
 
 import numpy as np
 import pytest
 
+from racing_rl import paths
 from racing_rl.bridge import UnityVecEnv
 from racing_rl.bridge.evaluate import per_seed_report, report, run_eval
 from racing_rl.bridge.protocol import FROZEN_ENV_CONFIG_HASH, layout_hash
 from racing_rl.rl import ActorCritic, TorchPolicy, get_preset, load_checkpoint, train
 
-REPO = Path(__file__).resolve().parents[4]
-EXE = REPO / "Builds" / "RaceEnv" / "RaceEnv.exe"
-LOGS = REPO / "runs" / "pytest_unity_logs"
+EXE = paths.BRIDGE_EXE
+LOGS = paths.RUNS / "pytest_unity_logs"
 PORT = 6405
 
 pytestmark = [pytest.mark.unity, pytest.mark.skipif(not EXE.is_file(), reason=f"bridge player missing: {EXE}")]

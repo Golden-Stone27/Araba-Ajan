@@ -1,0 +1,9 @@
+{
+  "unity_project": "unity",
+  "bridge_exe": "outputs/builds/RaceEnv/RaceEnv.exe",
+  "mla_exe": "outputs/builds/RaceEnv_MLA/RaceEnv.exe",
+  "benchmarks": "outputs/benchmarks",
+  "runs": "outputs/runs",
+  "test_results": "outputs/test-results",
+  "track_catalog": "python/racing_rl/bridge/track_catalog.json"
+}

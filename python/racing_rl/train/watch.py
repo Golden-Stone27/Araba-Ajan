@@ -7,10 +7,10 @@ real time (dt = fixed_dt · decision_period = 0.1 s at --speed 1); without the t
 requests as fit its 50 ms frame budget and the cars would run many times faster than real time. Ctrl+C stops.
 
     python -m racing_rl.train.watch
-    python -m racing_rl.train.watch --policy torch:../runs/m5/parity_s1/best.pt
-    python -m racing_rl.train.watch --policy onnx:../benchmarks/models/mlagents_baseline_s1.onnx
+    python -m racing_rl.train.watch --policy torch:../outputs/runs/m5/parity_s1/best.pt
+    python -m racing_rl.train.watch --policy onnx:../outputs/benchmarks/models/mlagents_baseline_s1.onnx
 
-Default policy: benchmarks/models/custom_ppo_s2.pt (best custom PPO, flying lap 38.68 s). EvalGrid, 3 laps,
+Default policy: outputs/benchmarks/models/custom_ppo_s2.pt (best custom PPO, flying lap 38.68 s). EvalGrid, 3 laps,
 deterministic μ; agents auto-reset after the race and keep driving. The Editor renders roughly once per decision.
 
 --track (M6): the Editor cannot take command-line flags, so first type the same id into the scene's
@@ -27,11 +27,12 @@ import time
 
 import numpy as np
 
+from racing_rl import paths
 from racing_rl.bridge.protocol import StartMode
 from racing_rl.bridge.vec_env import UnityVecEnv
-from racing_rl.train.evaluate import REPO, load_policy
+from racing_rl.train.evaluate import load_policy
 
-DEFAULT_POLICY = f"torch:{REPO / 'benchmarks' / 'models' / 'custom_ppo_s2.pt'}"
+DEFAULT_POLICY = f"torch:{paths.MODELS / 'custom_ppo_s2.pt'}"
 
 
 def main() -> None:

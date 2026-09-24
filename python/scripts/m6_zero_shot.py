@@ -10,12 +10,12 @@ run     C0.10 over the bridge (EvalGrid, seeds 1000..1019, 3 laps, deterministic
         racing_rl.train.evaluate with UnityVecEnv(track=T): one 20-agent process per track, reused for the six models
         (every evaluation starts with RESET, which rebuilds the cars, C0.17; in-process RESET is bit-reproducible on
         Track_D too, C0.20), as in the M5 benchmark. Track_A goes through the same path and must reproduce the M5
-        per-seed metrics exactly (benchmarks/custom_ppo.json, mlagents_bridge.json). Per-decision traces go to
-        runs/m6/zero_shot/traces (gitignored); where and why every first episode ended (reason, laps, s in m) is
-        extracted from them. Results: benchmarks/eval/m6_zero_shot.json (reruns of a subset of tracks are merged).
-report  benchmarks/M6_TRACKS.md: tracks, head-to-head per track (completion, flying lap T and T / PurePursuit,
+        per-seed metrics exactly (outputs/benchmarks/custom_ppo.json, mlagents_bridge.json). Per-decision traces go to
+        outputs/runs/m6/zero_shot/traces (gitignored); where and why every first episode ended (reason, laps, s in m) is
+        extracted from them. Results: outputs/benchmarks/eval/m6_zero_shot.json (reruns of a subset of tracks are merged).
+report  outputs/benchmarks/M6_TRACKS.md: tracks, head-to-head per track (completion, flying lap T and T / PurePursuit,
         lap 1, speed, distance driven), termination reasons, crash locations (Track_D by elevation section), the
-        per-seed matrix; the summary text comes from benchmarks/eval/m6_notes.md.
+        per-seed matrix; the summary text comes from outputs/benchmarks/eval/m6_notes.md.
 """
 
 from __future__ import annotations
@@ -30,27 +30,27 @@ from pathlib import Path
 
 import numpy as np
 
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "python"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from racing_rl import paths  # noqa: E402
 from racing_rl.bridge.evaluate import EPISODES, LAPS, SEED_BASE, report as bench_report  # noqa: E402
 from racing_rl.bridge.protocol import TERM_REASON_KEYS, TermReason  # noqa: E402
 from racing_rl.bridge.tracks import load_catalog, resolve_track  # noqa: E402
 from racing_rl.bridge.vec_env import UnityVecEnv  # noqa: E402
 from racing_rl.train.evaluate import DEFAULT_EXE, evaluate  # noqa: E402
 
-OUT = REPO / "runs" / "m6" / "zero_shot"
+OUT = paths.RUNS / "m6" / "zero_shot"
 LOGS = OUT / "unity_logs"
-RESULT = REPO / "benchmarks" / "eval" / "m6_zero_shot.json"
-REPORT = REPO / "benchmarks" / "M6_TRACKS.md"
-NOTES = REPO / "benchmarks" / "eval" / "m6_notes.md"
+RESULT = paths.EVAL / "m6_zero_shot.json"
+REPORT = paths.BENCHMARKS / "M6_TRACKS.md"
+NOTES = paths.EVAL / "m6_notes.md"
 SCHEMA = "race-m6-zero-shot/v1"
 
 TRACKS = ["Track_A", "Track_B", "Track_C", "Track_D", "proc:0", "proc:1", "proc:7", "proc:1000"]
 FAMILIES = {"custom": ("custom-ppo", "custom_ppo.json"), "mlagents": ("mlagents-ppo", "mlagents_bridge.json")}
 MODELS = [(kind, s, spec) for kind, fmt in (("custom", "torch:{}/custom_ppo_s{}.pt"),
                                             ("mlagents", "onnx:{}/mlagents_baseline_s{}.onnx"))
-          for s in (1, 2, 3) for spec in [fmt.format(REPO / "benchmarks" / "models", s)]]
+          for s in (1, 2, 3) for spec in [fmt.format(paths.MODELS, s)]]
 SKIP_KEYS = {"wallclock_s", "trace", "policy_spec", "checkpoint_step", "model"}  # run metadata, not results
 
 # PurePursuit laps from the grid, seed 1000 (PlayMode *PurePursuit_Completes3Laps_WithoutWallContact, C0.20)
@@ -86,7 +86,7 @@ def same(a, b) -> bool:
 
 def run(a) -> int:
     data = json.loads(RESULT.read_text(encoding="utf-8")) if RESULT.is_file() else {"schema": SCHEMA, "tracks": {}}
-    refs = {kind: {p["seed"]: p for p in json.loads((REPO / "benchmarks" / f).read_text(encoding="utf-8"))["per_seed"]}
+    refs = {kind: {p["seed"]: p for p in json.loads((paths.BENCHMARKS / f).read_text(encoding="utf-8"))["per_seed"]}
             for kind, (_, f) in FAMILIES.items()}
     ok = True
     for ti, name in enumerate(a.tracks):
@@ -101,7 +101,7 @@ def run(a) -> int:
                 trace = OUT / "traces" / f"{track.replace(':', '')}_{kind}_s{seed}.npz"
                 res = evaluate(env, spec, seed, SEED_BASE, trace)
                 ps = res["per_seed"]
-                ps["policy_spec"] = spec.split(":", 1)[0] + ":benchmarks/models/" + Path(spec.split(":", 1)[1]).name
+                ps["policy_spec"] = spec.split(":", 1)[0] + f":{paths.rel(paths.MODELS)}/" + Path(spec.split(":", 1)[1]).name
                 per_family[kind].append(ps)
                 train_tracks[f"{kind}_s{seed}"] = res["train_tracks"]
                 ends[f"{kind}_s{seed}"] = episode_ends(trace, info["track_length_m"])
@@ -132,7 +132,7 @@ def run(a) -> int:
         RESULT.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")  # after every track: partial results
     data["protocol"] = {"episodes": EPISODES, "seed_base": SEED_BASE, "laps": LAPS, "start": "grid",
                         "deterministic": True, "first_episode_only": True}
-    data["models"] = [spec.split(":", 1)[0] + ":benchmarks/models/" + Path(spec.split(":", 1)[1]).name
+    data["models"] = [spec.split(":", 1)[0] + f":{paths.rel(paths.MODELS)}/" + Path(spec.split(":", 1)[1]).name
                       for _, _, spec in MODELS]
     data["tracks"] = {t: data["tracks"][t] for t in TRACKS if t in data["tracks"]} | {
         t: v for t, v in data["tracks"].items() if t not in TRACKS}
@@ -209,9 +209,9 @@ def build_report(data: dict, notes: str) -> str:
     w(f"> **Protokol:** C0.10 (EvalGrid, tohumlar {SEED_BASE}..{SEED_BASE + EPISODES - 1}, {LAPS} tur, deterministik μ, "
       "ajan başına ilk episode), köprü değerlendiricisi (`racing_rl.train.evaluate`, `UnityVecEnv(track=...)`).")
     w(f"> **Modeller:** özel PPO `custom_ppo_s{{1,2,3}}.pt` (M5 `best.pt`) ve ML-Agents `mlagents_baseline_s{{1,2,3}}.onnx` "
-      "(M2). Hepsi yalnız Track_A'da eğitildi. **Build:** `Builds/RaceEnv` "
+      "(M2). Hepsi yalnız Track_A'da eğitildi. **Build:** `outputs/builds/RaceEnv` "
       f"(`build_id` `{data.get('build_id', '?')}`, Unity {data.get('unity', '?')}). "
-      "Üretim: `python scripts/m6_zero_shot.py run` ve `report`; ham sonuçlar `benchmarks/eval/m6_zero_shot.json`.")
+      "Üretim: `python scripts/m6_zero_shot.py run` ve `report`; ham sonuçlar `outputs/benchmarks/eval/m6_zero_shot.json`.")
     w("")
     if notes.strip():
         w(notes.strip())
@@ -307,7 +307,7 @@ def build_report(data: dict, notes: str) -> str:
         w("")
         w(f"Track_A, yeni pist API'si (`UnityVecEnv(track=\"Track_A\")`: `-trackName`, CONFIG `expected_track_id`) ve aynı "
           "süreçte 6 modelle koşuldu. Tüm per-seed metrikleri M5 raporlarıyla "
-          f"(`benchmarks/custom_ppo.json`, `benchmarks/mlagents_bridge.json`) {'**bit düzeyinde aynı**' if good else '**FARKLI**'} "
+          f"(`outputs/benchmarks/custom_ppo.json`, `outputs/benchmarks/mlagents_bridge.json`) {'**bit düzeyinde aynı**' if good else '**FARKLI**'} "
           f"({sum(v['m5_identical'] for v in chk.values())}/{len(chk)}).")
         w("")
     return "\n".join(L) + "\n"

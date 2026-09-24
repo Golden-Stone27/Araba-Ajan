@@ -9,13 +9,14 @@ namespace Racing.Editor
 {
     /// <summary>
     /// Runs the Racing test assemblies from code (editor stays open) and writes a plain-text summary to
-    /// TestResults/&lt;Mode&gt;_summary.txt. Callbacks are re-registered after every domain reload.
+    /// outputs/test-results/&lt;Mode&gt;_summary.txt (paths.json test_results). Callbacks are re-registered after every
+    /// domain reload.
     /// </summary>
     [InitializeOnLoad]
     public static class TestRunReporter
     {
         const string ModeKey = "Racing.TestRunReporter.Mode";
-        public const string OutDir = "TestResults";
+        public static string OutDir => RepoPaths.TestResults;
 
         static TestRunReporter()
         {

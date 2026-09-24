@@ -1,16 +1,14 @@
 """M6 step 5 against the real bridge player (pytest -m unity): per-track smoke runs, mixed-track MultiUnityVecEnv."""
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 
+from racing_rl import paths
 from racing_rl.bridge import MultiUnityVecEnv, RemoteError, StartMode, UnityVecEnv, composite_hash, resolve_track
 from racing_rl.bridge.protocol import ERR_UNKNOWN_TRACK, FROZEN_OBS_LAYOUT_HASH
 
-REPO = Path(__file__).resolve().parents[2]
-EXE = REPO / "Builds" / "RaceEnv" / "RaceEnv.exe"
-LOGS = REPO / "runs" / "pytest_unity_logs"
+EXE = paths.BRIDGE_EXE
+LOGS = paths.RUNS / "pytest_unity_logs"
 
 pytestmark = [pytest.mark.unity, pytest.mark.skipif(not EXE.is_file(), reason=f"bridge player missing: {EXE}")]
 

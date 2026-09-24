@@ -8,14 +8,14 @@ M6 step 4 checks against the real bridge build.
 smoke        HELLO of every catalog track and proc:7 (env_config_hash and track fields vs C0.20), the UNKNOWN_TRACK path
              (unknown name, out-of-range index, conflicting flags) and CONFIG expected_track_id (TRACK_MISMATCH).
 regress      Track_A C0.10 evaluation of the six M5 models with the new build. Every per-seed metric and every trace array
-             must be bit-identical to benchmarks/{custom_ppo,mlagents_bridge}.json and benchmarks/eval/traces/*.npz.
+             must be bit-identical to outputs/benchmarks/{custom_ppo,mlagents_bridge}.json and outputs/benchmarks/eval/traces/*.npz.
              Variants: no track flag (the M5 command line) and -trackName Track_A for all six, -trackIndex 0 for custom s1
              (--all-variants: every variant for every model).
 determinism  Per track and scenario, two fresh processes with -trackName T: RESET(seed) + N STEPs, twice per process.
              Scenarios (TrainRandom spawns over the whole track): a fixed action sequence, and the M5 policy (deterministic μ).
              The SHA-256 of every STATE (obs, reward, flags, final_obs, RACE_INFO) must match across the processes and
              across the two RESETs of one process (RESET rebuilds the cars, contracts C0.17).
-Per-run outputs go to runs/m6/ (gitignored); summaries to benchmarks/eval/m6_*.json.
+Per-run outputs go to outputs/runs/m6/ (gitignored); summaries to outputs/benchmarks/eval/m6_*.json.
 """
 
 from __future__ import annotations
@@ -29,17 +29,17 @@ from pathlib import Path
 
 import numpy as np
 
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "python"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from racing_rl import paths  # noqa: E402
 from racing_rl.bridge import RemoteError, UnityVecEnv  # noqa: E402
 from racing_rl.bridge.protocol import (ERR_TRACK_MISMATCH, ERR_UNKNOWN_TRACK, HELLO_TRACK_FIELDS, INFO_FIELDS,  # noqa: E402
                                        MSG_CLOSE, MSG_CONFIG, MSG_ERROR, MSG_HELLO, MSG_READY, layout_hash)
 from racing_rl.bridge.transport import FramedSocket, bind_server  # noqa: E402
 from racing_rl.bridge.unity_process import UnityProcess  # noqa: E402
 
-EXE = REPO / "Builds" / "RaceEnv" / "RaceEnv.exe"
-OUT = REPO / "runs" / "m6"
+EXE = paths.BRIDGE_EXE
+OUT = paths.RUNS / "m6"
 LOGS = OUT / "unity_logs"
 
 # contracts C0.20 (env_config_hash) and BridgeTrackTests (track_hash = the track part alone)
@@ -134,8 +134,8 @@ def smoke(a) -> dict:
 
 
 # ---------------------------------------------------------------------------------------------------- regression
-MODELS = [("custom", s, f"torch:{REPO / 'benchmarks' / 'models' / f'custom_ppo_s{s}.pt'}", "custom_ppo.json") for s in (1, 2, 3)] + \
-         [("mlagents", s, f"onnx:{REPO / 'benchmarks' / 'models' / f'mlagents_baseline_s{s}.onnx'}", "mlagents_bridge.json")
+MODELS = [("custom", s, f"torch:{paths.MODELS / f'custom_ppo_s{s}.pt'}", "custom_ppo.json") for s in (1, 2, 3)] + \
+         [("mlagents", s, f"onnx:{paths.MODELS / f'mlagents_baseline_s{s}.onnx'}", "mlagents_bridge.json")
           for s in (1, 2, 3)]
 SKIP_KEYS = {"wallclock_s", "trace", "policy_spec", "checkpoint_step"}  # run metadata, not results
 
@@ -164,7 +164,7 @@ def regress(a) -> dict:
     variants = {"none": [], "name": ["-trackName", "Track_A"], "index": ["-trackIndex", "0"]}
     port, rows, ok = a.port, [], True
     for kind, seed, spec, ref_file in MODELS:
-        ref = {p["seed"]: p for p in json.loads((REPO / "benchmarks" / ref_file).read_text(encoding="utf-8"))["per_seed"]}[seed]
+        ref = {p["seed"]: p for p in json.loads((paths.BENCHMARKS / ref_file).read_text(encoding="utf-8"))["per_seed"]}[seed]
         for vname, flags in variants.items():
             if not a.all_variants and vname == "index" and (kind, seed) != ("custom", 1):
                 continue
@@ -181,7 +181,7 @@ def regress(a) -> dict:
             (OUT / "regress" / f"{kind}_s{seed}_{vname}.json").write_text(json.dumps(ps, indent=2) + "\n", encoding="utf-8")
             keys = sorted((set(ref) | set(ps)) - SKIP_KEYS)
             metric_diff = [k for k in keys if not same(ref.get(k), ps.get(k))]
-            trace_diff = compare_traces(REPO / "benchmarks" / "eval" / "traces" / ref["trace"], trace)
+            trace_diff = compare_traces(paths.TRACES / ref["trace"], trace)
             good = not metric_diff and not trace_diff and track == ("Track_A", 0, "90240ee2b1a58b5b")
             ok &= good
             rows.append({"policy": kind, "seed": seed, "variant": vname, "flags": flags, "ok": good,
@@ -192,8 +192,8 @@ def regress(a) -> dict:
             print(f"[regress] {kind:8s} s{seed} {vname:5s} T={ps['flying_lap_median_s']:.2f} "
                   f"(ref {ref['flying_lap_median_s']:.2f}) metrics {'=' if not metric_diff else metric_diff} "
                   f"trace {'=' if not trace_diff else trace_diff} {'OK' if good else 'FAIL'}")
-    return {"check": "track_a_regression", "ok": ok, "reference": ["benchmarks/custom_ppo.json", "benchmarks/mlagents_bridge.json",
-                                                                   "benchmarks/eval/traces/*.npz"], "runs": rows}
+    return {"check": "track_a_regression", "ok": ok, "reference": [paths.rel(paths.BENCHMARKS / f) for f in
+                                                                   ("custom_ppo.json", "mlagents_bridge.json", "eval/traces/*.npz")], "runs": rows}
 
 
 # ---------------------------------------------------------------------------------------------------- determinism
@@ -294,11 +294,11 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("smoke")
     s.add_argument("--port", type=int, default=6605)
-    s.add_argument("--out", default=str(REPO / "benchmarks" / "eval" / "m6_bridge_smoke.json"))
+    s.add_argument("--out", default=str(paths.EVAL / "m6_bridge_smoke.json"))
     r = sub.add_parser("regress")
     r.add_argument("--port", type=int, default=6705)
     r.add_argument("--all-variants", action="store_true")
-    r.add_argument("--out", default=str(REPO / "benchmarks" / "eval" / "m6_track_a_regression.json"))
+    r.add_argument("--out", default=str(paths.EVAL / "m6_track_a_regression.json"))
     d = sub.add_parser("determinism")
     d.add_argument("--port", type=int, default=6805)
     d.add_argument("--tracks", nargs="+", default=["Track_D", "Track_A"])
@@ -307,10 +307,10 @@ def main() -> None:
     d.add_argument("--seed", type=int, default=1000)
     d.add_argument("--mode", type=int, default=0, help="start mode (0 = TrainRandom: spawns over the whole track, 1 = EvalGrid)")
     d.add_argument("--action-seed", type=int, default=0)
-    d.add_argument("--policy", default=f"torch:{REPO / 'benchmarks' / 'models' / 'custom_ppo_s1.pt'}",
+    d.add_argument("--policy", default=f"torch:{paths.MODELS / 'custom_ppo_s1.pt'}",
                    help="policy scenario (deterministic μ); empty string skips it")
     d.add_argument("--processes", type=int, default=2)
-    d.add_argument("--out", default=str(REPO / "benchmarks" / "eval" / "m6_track_determinism.json"))
+    d.add_argument("--out", default=str(paths.EVAL / "m6_track_determinism.json"))
     a = ap.parse_args()
     if not EXE.is_file():
         sys.exit(f"build not found: {EXE}")

@@ -21,7 +21,7 @@ namespace Racing.MLAgents
 
         [SerializeField] ModelAsset model;
         [SerializeField] int trainSeed = 1;
-        [SerializeField] string outputPath = "benchmarks/eval/mlagents_s1.json";
+        [SerializeField] string outputPath = "../outputs/benchmarks/eval/mlagents_s1.json";  // relative to the Unity project
         [SerializeField] string buildId = "editor";
         [SerializeField] float timeScale = 20f;
         [SerializeField] bool exitWhenDone = true;

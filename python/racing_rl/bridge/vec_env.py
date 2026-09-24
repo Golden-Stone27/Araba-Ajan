@@ -14,6 +14,7 @@ import gymnasium
 import numpy as np
 from gymnasium.vector.utils import batch_space
 
+from .. import paths
 from .errors import (BridgeError, DesyncError, ProtocolMismatchError, RemoteError, UnityCrashedError,
                      UnityLaunchError, UnityTimeoutError)
 from .protocol import (ACT_DIM, FROZEN_ENV_CONFIG_HASH, HELLO_TRACK_FIELDS, INFO_FIELDS, INFO_STRUCT, MSG_CLOSE,
@@ -74,7 +75,7 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
     metadata = {"autoreset_mode": gymnasium.vector.AutoresetMode.SAME_STEP}
 
     def __init__(self, exe_path: str | os.PathLike | None, num_agents: int = 16, port: int = 6005,
-                 expected_env_hash: str | None = AUTO, log_dir: str | os.PathLike = "runs/unity_logs",
+                 expected_env_hash: str | None = AUTO, log_dir: str | os.PathLike = paths.RUNS / "unity_logs",
                  step_timeout_s: float | None = None, launch_timeout_s: float = 180.0, *, host: str = "127.0.0.1",
                  strict: bool = True, extra_args: list[str] | None = None, headless: bool = True,
                  record_rtt: bool = False, timing_log: str | os.PathLike | None = None, launch_retries: int = 1,
@@ -236,7 +237,7 @@ class UnityVecEnv(gymnasium.vector.VectorEnv):
         if self.track is None:
             return []
         if "track_id" not in hello:
-            return ["HELLO has no track fields: the build predates M6 step 4 (track selection needs Builds/RaceEnv)"]
+            return ["HELLO has no track fields: the build predates M6 step 4 (track selection needs outputs/builds/RaceEnv)"]
         if hello["track_id"] != self.track.id:
             hint = "" if self.exe_path else " (Editor: set BridgeDriver.trackOverride in the scene)"
             return [f"track_id {hello['track_id']} != {self.track.id}{hint}"]
