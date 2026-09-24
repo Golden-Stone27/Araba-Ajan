@@ -1,0 +1,20 @@
+{
+    "name": "Racing.Viewer.Editor",
+    "rootNamespace": "Racing.Editor",
+    "references": [
+        "Racing.Core",
+        "Racing.Viewer",
+        "Racing.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

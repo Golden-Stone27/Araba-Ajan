@@ -1,0 +1,124 @@
+/* UI1 viewer: track picker (top left) and minimal HUD (bottom right). */
+
+.viewer-panel {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    width: 360px;
+    padding: 12px;
+    background-color: rgba(16, 18, 24, 0.88);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.viewer-title {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: rgb(232, 234, 240);
+    margin-bottom: 8px;
+}
+
+.viewer-panel .unity-base-field {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.viewer-panel .unity-base-field__label {
+    min-width: 64px;
+    color: rgb(201, 206, 217);
+}
+
+.viewer-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.viewer-row .unity-text-field {
+    flex-grow: 1;
+}
+
+.viewer-row .unity-toggle {
+    flex-grow: 1;
+}
+
+.viewer-row .unity-toggle .unity-base-field__label {
+    min-width: 0;
+    margin-right: 6px;
+}
+
+.viewer-row .unity-button {
+    margin-left: 6px;
+    margin-right: 0;
+}
+
+.viewer-info {
+    margin-top: 10px;
+    font-size: 12px;
+    color: rgb(174, 180, 194);
+    white-space: normal;
+}
+
+.viewer-error {
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgb(255, 107, 107);
+    white-space: normal;
+}
+
+.viewer-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: rgb(125, 132, 148);
+    white-space: normal;
+}
+
+.hud-panel {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    min-width: 180px;
+    padding: 8px 16px 10px 16px;
+    align-items: flex-end;
+    background-color: rgba(16, 18, 24, 0.88);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.hud-mode {
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(127, 212, 138);
+}
+
+.hud-mode--manual {
+    color: rgb(255, 196, 87);
+}
+
+.hud-speed-row {
+    flex-direction: row;
+    align-items: flex-end;
+}
+
+.hud-speed {
+    min-width: 100px;
+    font-size: 44px;
+    -unity-font-style: bold;
+    -unity-text-align: lower-right;
+    color: rgb(255, 255, 255);
+}
+
+.hud-unit {
+    margin-left: 6px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: rgb(174, 180, 194);
+}
+
+.hud-time {
+    font-size: 18px;
+    color: rgb(232, 234, 240);
+}

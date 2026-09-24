@@ -1,5 +1,7 @@
 # M6 Devir Teslim: Çoklu Pist ve Usulü Pist Üretimi
 
+> **Güncel iş (2026-09-23):** M6'dan sonra UI1 (Unity içi pist seçici ve izleme arayüzü) başladı. Devam noktası [`UI1_HANDOVER.md`](UI1_HANDOVER.md); önce onu oku. Bu dosyanın §1 kuralları ve §3 bulguları geçerliliğini koruyor.
+
 > **Okuma sırası:** Önce bu dosyayı, sonra [`docs/milestones/M6_multitrack.md`](docs/milestones/M6_multitrack.md) planını ve DoD'yi, en son [`docs/contracts.md`](docs/contracts.md) **C0.20** bölümünü oku. Bağlayıcı sayılar, hash'ler ve kurallar contracts'tadır.
 > **Tarih:** 2026-09-23. **Dal:** `GS`. **Son commit'ler:** Watch sahnesi `d3f2def`, Adım 1 `09145ed`, Adım 2 `4395397`, Adım 3 `77fe15f`, devir teslim `0f2c6c3`, **Adım 4 `c452638`** (`feat(m6): CLI track flags, bridge hello/config protocol and build verification`). Adım 4 sonrası devir teslim `ec5e4ce`. **Adım 5 çalışma ağacında tamamlandı**; commit kullanıcı komutuyla atılacak.
 > **Durum:** **M6 tamamlandı** (DoD'nin tamamı işaretli). Sıradaki iş kullanıcının kararına bağlı, bkz. §4.
